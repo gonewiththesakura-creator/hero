@@ -2,604 +2,320 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Neon Survivor v7.0 - GOD MODE</title>
+    <title>Neon Survivor v8.0 - OPTIMIZED & SPLIT LASER</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root { --p: #00f3ff; --s: #ff00ff; --g: #ffd700; --bg: #08080a; }
         body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Rajdhani'; user-select: none; color: white; }
         canvas { display: block; }
-
-        /* UI Layers */
         .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(8,8,10,0.9); backdrop-filter: blur(10px); z-index: 10; transition: 0.3s; }
         .hidden { opacity: 0; pointer-events: none; z-index: -1; }
-
-        /* Titles & Buttons */
         h1 { font-family: 'Orbitron'; font-size: 80px; margin: 0; background: linear-gradient(to right, var(--p), var(--s)); -webkit-background-clip: text; color: transparent; text-shadow: 0 0 30px rgba(0,243,255,0.3); }
         button { background: rgba(0,0,0,0.5); border: 2px solid var(--p); color: white; padding: 15px 50px; font-family: 'Orbitron'; font-size: 20px; cursor: pointer; transition: 0.2s; text-transform: uppercase; margin-top: 30px; }
         button:hover { background: var(--p); color: black; box-shadow: 0 0 30px var(--p); transform: scale(1.05); }
-
-        /* HUD */
         #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
         .exp-box { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 400px; height: 20px; background: #111; border: 1px solid #444; border-radius: 10px; overflow: hidden; }
         .exp-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--p), #0f0); box-shadow: 0 0 10px var(--p); }
         .lvl-badge { position: absolute; top: 45px; left: 50%; transform: translateX(-50%); font-family: 'Orbitron'; font-size: 24px; color: var(--g); text-shadow: 0 0 10px var(--g); }
         .stats { position: absolute; top: 20px; left: 20px; font-family: 'Orbitron'; font-size: 18px; color: #ccc; }
         .timer { position: absolute; top: 20px; right: 20px; font-family: 'Orbitron'; font-size: 30px; }
-
-        /* Cards */
         .card-container { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
         .card { width: 220px; height: 320px; background: linear-gradient(160deg, #1a1a20, #0a0a0c); border: 1px solid #444; border-top: 4px solid var(--c); border-radius: 10px; padding: 20px; cursor: pointer; text-align: center; transition: 0.3s; position: relative; overflow: hidden; }
         .card:hover { transform: translateY(-10px); border-color: var(--c); box-shadow: 0 0 40px var(--c); }
         .card.awakened { animation: pulse-gold 1s infinite alternate; border-color: var(--g); }
         .icon { font-size: 50px; margin: 20px 0; filter: drop-shadow(0 0 10px var(--c)); }
         @keyframes pulse-gold { from { box-shadow: 0 0 10px var(--g); } to { box-shadow: 0 0 40px var(--g); } }
-
-        /* --- 作弊台 (Cheat Console) --- */
-        #cheat-console {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 200px;
-            background: rgba(0, 0, 0, 0.95); border-top: 2px solid var(--p);
-            display: flex; flex-direction: column; padding: 20px;
-            transform: translateY(100%); transition: transform 0.3s;
-            z-index: 999; pointer-events: auto; font-family: 'Consolas', monospace;
-        }
+        #cheat-console { position: absolute; bottom: 0; left: 0; width: 100%; height: 200px; background: rgba(0, 0, 0, 0.95); border-top: 2px solid var(--p); display: flex; flex-direction: column; padding: 20px; transform: translateY(100%); transition: transform 0.3s; z-index: 999; pointer-events: auto; font-family: 'Consolas', monospace; }
         #cheat-console.open { transform: translateY(0); }
         .cheat-row { display: flex; gap: 20px; margin-bottom: 10px; align-items: center; }
         .cheat-btn { padding: 5px 15px; font-size: 14px; background: #333; border: 1px solid #666; color: white; margin: 0; }
         .cheat-btn:hover { background: var(--p); color: black; }
-        .cheat-input { background: #111; border: 1px solid #444; color: white; padding: 5px; width: 80px; }
         .console-log { color: #0f0; font-size: 12px; height: 100px; overflow-y: auto; border: 1px solid #333; padding: 5px; margin-top: 10px; }
-
-        /* Awakening Banner */
         #awaken-msg { position: absolute; top: 40%; width: 100%; text-align: center; font-family: 'Orbitron'; font-size: 80px; font-weight: 900; background: linear-gradient(to bottom, #fff, var(--g)); -webkit-background-clip: text; color: transparent; text-shadow: 0 0 50px red; pointer-events: none; opacity: 0; transform: scale(3); transition: 0.4s; z-index: 200; }
         #awaken-msg.show { opacity: 1; transform: scale(1); }
     </style>
 </head>
 <body>
-
     <canvas id="gameCanvas"></canvas>
     <div id="awaken-msg">ULTIMATE AWAKENED</div>
-
     <div id="start-screen" class="overlay">
         <h1>NEON SURVIVOR</h1>
-        <div style="font-family:'Orbitron'; color:#666; margin-bottom:20px;">v7.0 DEVELOPER CUT</div>
+        <div style="font-family:'Orbitron'; color:#666; margin-bottom:20px;">v8.0 PERFORMANCE + SPLIT LASER</div>
         <button onclick="startGame()">DEPLOY</button>
         <p style="color:#444; font-size:12px; margin-top:20px;">Press [ ` ] (tilde) for Cheat Console</p>
     </div>
-
     <div id="hud" class="hidden">
         <div class="exp-box"><div class="exp-fill" id="exp-bar"></div></div>
         <div class="lvl-badge">LV <span id="lvl-txt">1</span></div>
-        <div class="stats">
-            <div style="color:#f33">HP: <span id="hp-txt">100</span>%</div>
-            <div style="font-size:14px; margin-top:5px;">KILLS: <span id="kill-txt">0</span></div>
-        </div>
+        <div class="stats"><div style="color:#f33">HP: <span id="hp-txt">100</span>%</div><div style="font-size:14px; margin-top:5px;">KILLS: <span id="kill-txt">0</span></div></div>
         <div class="timer" id="time-txt">00:00</div>
     </div>
-
     <div id="upgrade-menu" class="overlay hidden">
         <h2>SYSTEM UPGRADE</h2>
         <div class="card-container" id="card-box"></div>
         <button onclick="reroll()" style="font-size:16px; padding:10px 20px; border-color:#666;">REROLL</button>
     </div>
-
     <div id="game-over" class="overlay hidden">
         <h1 style="color:var(--s);">MIA</h1>
         <p id="end-score" style="font-size:24px; color:#ccc;">...</p>
         <button onclick="location.reload()">RESPAWN</button>
     </div>
-
     <div id="cheat-console">
         <div style="color:var(--p); margin-bottom:10px;">>> DEVELOPER CONSOLE</div>
-        <div class="cheat-row">
-            <button class="cheat-btn" onclick="cheat('lvlup')">Level Up (+1)</button>
-            <button class="cheat-btn" onclick="cheat('max_skills')">Max All Skills</button>
-            <button class="cheat-btn" onclick="cheat('heal')">Full Heal</button>
-            <button class="cheat-btn" onclick="cheat('godmode')">Toggle GodMode</button>
-            <button class="cheat-btn" onclick="cheat('killall')">Kill All Enemies</button>
-        </div>
-        <div class="cheat-row">
-            <span>Set EXP:</span>
-            <input type="number" id="cheat-exp-val" class="cheat-input" value="1000">
-            <button class="cheat-btn" onclick="cheat('add_exp')">Add</button>
-        </div>
-        <div class="console-log" id="console-log">System initialized...</div>
+        <div class="cheat-row"><button class="cheat-btn" onclick="cheat('lvlup')">Level Up</button><button class="cheat-btn" onclick="cheat('max_skills')">Max Skills (GOD)</button><button class="cheat-btn" onclick="cheat('heal')">Full Heal</button><button class="cheat-btn" onclick="cheat('godmode')">Toggle GodMode</button><button class="cheat-btn" onclick="cheat('killall')">Kill All</button></div>
+        <div class="console-log" id="console-log">System initialized... Performance cap active.</div>
     </div>
-
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
     window.addEventListener('resize', resize); resize();
 
-    // --- 游戏配置 ---
-    const C = {
-        p: '#00f3ff', s: '#ff00ff', g: '#ffd700', r: '#ff3333',
-        drone: '#00ff66', laser: '#ff0055'
-    };
+    // --- 配置 ---
+    const C = { p: '#00f3ff', s: '#ff00ff', g: '#ffd700', r: '#ff3333', drone: '#00ff66', laser: '#ff0055' };
+    const MAX_ENEMIES = 450; // 性能优化：最大怪物数量
     
-    // --- 全局状态 ---
-    let state = 'start'; // start, run, upgrade, over
-    let frame = 0;
-    let bgOff = {x:0, y:0};
-    let keys = {};
-    let godMode = false;
-    let enemies = [], bullets = [], particles = [], exps = [], texts = [], drones = [];
+    let state = 'start', frame = 0, bgOff = {x:0, y:0}, keys = {}, godMode = false;
+    let enemies = [], bullets = [], particles = [], exps = [], texts = [], drones = [], lasers = [];
     
-    // 玩家对象
-    let player = {
-        x:0, y:0, hp:100, maxHp:100, spd:4, 
-        lvl:1, exp:0, nextExp:10, kills:0,
-        skills: { shot:1, drone:0, laser:0, shield:0, speed:0 }, // 等级
-        timers: { shot:0, laser:0 },
-        shieldAngle: 0
-    };
-
-    // --- 技能数据库 ---
+    let player = { x:0, y:0, hp:100, maxHp:100, spd:4, lvl:1, exp:0, nextExp:10, kills:0, skills: { shot:1, drone:0, laser:0, shield:0, speed:0 }, timers: { shot:0, laser:0 }, shieldAngle: 0 };
     const DB = [
         { id:'shot', name:'Plasma', god:'GOD SLAYER', icon:'🔫', col:C.p, type:'active', desc:'Basic energy projectile.', godDesc:'Golden piercing streams.' },
-        { id:'drone', name:'Wingman', god:'INTERCEPTOR', icon:'🛰️', col:C.drone, type:'active', desc:'Summons a drone to shoot enemies.', godDesc:'Drone swarm with rapid fire.' },
-        { id:'laser', name:'Ion Laser', god:'DOOM RAY', icon:'⚡', col:C.laser, type:'active', desc:'Periodically fires a piercing beam.', godDesc:'Massive beam that melts everything.' },
+        { id:'drone', name:'Wingman', god:'INTERCEPTOR', icon:'🛰️', col:C.drone, type:'active', desc:'Summons a drone.', godDesc:'Drone swarm rapid fire.' },
+        { id:'laser', name:'Ion Laser', god:'DOOM RAY', icon:'⚡', col:C.laser, type:'active', desc:'Piercing beam that splits on hit.', godDesc:'Massive golden beam that erupts on hit.' },
         { id:'shield', name:'Orbitals', god:'ION STORM', icon:'🛡️', col:C.s, type:'active', desc:'Protective orbs.', godDesc:'Impenetrable barrier.' },
         { id:'speed', name:'Thrusters', icon:'🚀', col:'#fff', type:'passive', desc:'Move Speed +15%.' }
     ];
 
-    // --- 输入控制 ---
-    window.onkeydown = e => {
-        keys[e.key] = true;
-        if(e.key === '`') document.getElementById('cheat-console').classList.toggle('open');
-    };
+    window.onkeydown = e => { keys[e.key] = true; if(e.key === '`') document.getElementById('cheat-console').classList.toggle('open'); };
     window.onkeyup = e => keys[e.key] = false;
 
     // --- 核心类 ---
-
-    // 1. 僚机 (Drone)
     class Drone {
-        constructor(id, isGod) {
-            this.id = id; this.isGod = isGod;
-            this.angle = 0;
-            this.timer = 0;
-        }
+        constructor(id, isGod) { this.id = id; this.isGod = isGod; this.angle = 0; this.timer = 0; }
         update() {
-            // 跟随逻辑：在玩家周围盘旋
             const targetDist = 60 + (this.isGod?20:0);
             this.angle += (this.isGod ? 0.05 : 0.03);
-            // 目标位置
-            const tx = player.x + Math.cos(this.angle + this.id) * targetDist;
-            const ty = player.y + Math.sin(this.angle + this.id) * targetDist;
-            // 简单的平滑移动
-            this.x = tx; this.y = ty; // 瞬间跟随，为了不掉队
-
-            // 射击逻辑
+            this.x = player.x + Math.cos(this.angle + this.id) * targetDist;
+            this.y = player.y + Math.sin(this.angle + this.id) * targetDist;
             this.timer--;
             if(this.timer <= 0) {
                 const target = findNearest(this.x, this.y);
                 if(target) {
                     const dmg = 8 + player.skills.drone*2 + (this.isGod?10:0);
-                    const spd = 6;
                     const a = Math.atan2(target.y-this.y, target.x-this.x);
-                    // 僚机子弹
-                    bullets.push(new Bullet(this.x, this.y, Math.cos(a)*spd, Math.sin(a)*spd, dmg, this.isGod, 'drone'));
-                    this.timer = this.isGod ? 20 : 60; // 觉醒后射速3倍
+                    bullets.push(new Bullet(this.x, this.y, Math.cos(a)*6, Math.sin(a)*6, dmg, this.isGod, 'drone'));
+                    this.timer = this.isGod ? 20 : 60;
                 }
             }
         }
         draw() {
-            ctx.save(); ctx.translate(this.x, this.y);
-            // 简单的飞船形状
-            ctx.rotate(this.angle + Math.PI/2);
-            ctx.fillStyle = this.isGod ? C.g : C.drone;
-            ctx.shadowBlur = 10; ctx.shadowColor = ctx.fillStyle;
-            ctx.beginPath(); ctx.moveTo(0,-8); ctx.lineTo(6,6); ctx.lineTo(0,4); ctx.lineTo(-6,6); ctx.fill();
-            ctx.restore();
+            ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle + Math.PI/2);
+            ctx.fillStyle = this.isGod ? C.g : C.drone; ctx.shadowBlur = 10; ctx.shadowColor = ctx.fillStyle;
+            ctx.beginPath(); ctx.moveTo(0,-8); ctx.lineTo(6,6); ctx.lineTo(0,4); ctx.lineTo(-6,6); ctx.fill(); ctx.restore();
         }
     }
 
-    // 2. 激光 (Laser)
+    // === 新增：次级分裂激光 ===
+    class MiniLaser {
+        constructor(x, y, angle, isGod) {
+            this.x=x; this.y=y; this.angle=angle; this.isGod=isGod;
+            this.life = 10; // 存在时间短
+            this.w = isGod ? 15 : 5; // 细
+            this.len = 300; // 射程短
+        }
+        update() { this.life--; }
+        draw() {
+            ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle);
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(this.len,0);
+            ctx.lineWidth = this.w; ctx.strokeStyle = this.isGod ? C.g : C.laser;
+            ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 15; ctx.stroke();
+            ctx.globalCompositeOperation = 'source-over'; ctx.restore();
+        }
+    }
+
+    // === 主激光 (修改版) ===
     class LaserBeam {
         constructor(x, y, angle, isGod) {
             this.x=x; this.y=y; this.angle=angle; this.isGod=isGod;
-            this.life = 15; // 存在时间
-            this.w = isGod ? 40 : 10;
+            this.life = 15; this.w = isGod ? 40 : 15;
         }
         update() {
-            this.life--;
-            // 激光跟随玩家
-            this.x = player.x; this.y = player.y;
-            
-            // 伤害判定 (线段碰撞)
-            // 简化：以玩家为中心，角度方向的矩形区域
-            const reach = canvas.width; // 无限射程
+            this.life--; this.x = player.x; this.y = player.y;
+            const reach = canvas.width;
             enemies.forEach(e => {
-                // 将敌人坐标变换到激光的局部坐标系
-                const dx = e.x - this.x;
-                const dy = e.y - this.y;
-                // 旋转
+                const dx = e.x - this.x; const dy = e.y - this.y;
                 const rx = dx * Math.cos(-this.angle) - dy * Math.sin(-this.angle);
                 const ry = dx * Math.sin(-this.angle) + dy * Math.cos(-this.angle);
-                
                 if(rx > 0 && rx < reach && Math.abs(ry) < this.w/2 + e.r) {
-                    if(this.life % 5 === 0) { // 每几帧造成一次伤害
-                        e.hit(player.skills.laser * 10 + (this.isGod?50:0));
-                        spawnParticles(e.x, e.y, C.laser, 2);
+                    if(this.life % 5 === 0) {
+                        e.hit(player.skills.laser * 8 + (this.isGod?40:0));
+                        spawnParticles(e.x, e.y, C.laser, 3);
+                        // === 分裂逻辑 ===
+                        // 击中时有概率分裂出次级激光
+                        if(Math.random() < (this.isGod?0.8:0.4)) {
+                             let splitCount = this.isGod ? 8 : 3;
+                             for(let i=0; i<splitCount; i++) {
+                                 // 向四周散射
+                                 let splitAngle = this.angle + (Math.random()-0.5) * Math.PI;
+                                 lasers.push(new MiniLaser(e.x, e.y, splitAngle, this.isGod));
+                             }
+                        }
                     }
                 }
             });
         }
         draw() {
             ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle);
-            // 混合模式让激光看起来更亮
             ctx.globalCompositeOperation = 'lighter';
-            
-            // 核心光束
-            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(1000,0);
-            ctx.lineWidth = this.w; 
-            ctx.strokeStyle = this.isGod ? '#ffaa00' : '#ff0055';
-            ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 20;
-            ctx.stroke();
-            
-            // 边缘光晕
-            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(1000,0);
-            ctx.lineWidth = this.w * 0.5;
-            ctx.strokeStyle = 'white';
-            ctx.stroke();
-            
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.restore();
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(2000,0);
+            ctx.lineWidth = this.w; ctx.strokeStyle = this.isGod ? C.g : C.laser;
+            ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 20; ctx.stroke();
+            ctx.lineWidth = this.w * 0.5; ctx.strokeStyle = 'white'; ctx.stroke();
+            ctx.globalCompositeOperation = 'source-over'; ctx.restore();
         }
     }
 
-    // 3. 子弹 (图标绘制)
     class Bullet {
         constructor(x, y, vx, vy, dmg, isGod, type='shot') {
-            this.x=x; this.y=y; this.vx=vx; this.vy=vy; 
-            this.dmg=dmg; this.isGod=isGod; this.type=type;
-            this.life=80;
+            this.x=x; this.y=y; this.vx=vx; this.vy=vy; this.dmg=dmg; this.isGod=isGod; this.type=type; this.life=80;
         }
         update() {
             this.x+=this.vx; this.y+=this.vy; this.life--;
-            if(this.isGod && frame%2===0) spawnParticles(this.x, this.y, this.type=='shot'?C.p:C.drone, 1);
-            
+            if(this.isGod && frame%3===0) spawnParticles(this.x, this.y, this.type=='shot'?C.p:C.drone, 1, 2);
             enemies.forEach(e => {
                 if(Math.hypot(e.x-this.x, e.y-this.y) < e.r+10) {
                     e.hit(this.dmg);
-                    if(!this.isGod || this.type==='drone') this.life=0; // 僚机子弹不穿透
+                    if(!this.isGod || this.type==='drone') this.life=0; 
                     else { spawnParticles(e.x,e.y, C.g, 3); }
                 }
             });
         }
         draw() {
-            ctx.save(); ctx.translate(this.x, this.y);
-            ctx.rotate(Math.atan2(this.vy, this.vx));
-            
+            ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(Math.atan2(this.vy, this.vx));
             if (this.type === 'shot') {
-                // 玩家主炮：画一个胶囊光梭
-                ctx.fillStyle = this.isGod ? C.g : C.p;
-                ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 10;
-                // 绘制形状
-                ctx.beginPath();
-                ctx.moveTo(6, 0); ctx.lineTo(-4, 3); ctx.lineTo(-4, -3); ctx.fill();
-            } else if (this.type === 'drone') {
-                // 僚机子弹：小三角形
-                ctx.fillStyle = this.isGod ? '#fff' : C.drone;
-                ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 5;
+                ctx.fillStyle = this.isGod ? C.g : C.p; ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 10;
+                ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(-6, 4); ctx.lineTo(-6, -4); ctx.fill();
+            } else {
+                ctx.fillStyle = this.isGod ? '#fff' : C.drone; ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 5;
                 ctx.beginPath(); ctx.moveTo(4,0); ctx.lineTo(-2,2); ctx.lineTo(-2,-2); ctx.fill();
             }
-            
             ctx.restore();
         }
     }
 
-    // --- 游戏逻辑 ---
-
     function startGame() {
-        // 重置数据
         player.lvl = 1; player.exp = 0; player.nextExp = 15; player.hp = 100;
         player.skills = { shot:1, drone:0, laser:0, shield:0, speed:0 };
-        enemies=[]; bullets=[]; particles=[]; drones=[]; exps=[];
+        enemies=[]; bullets=[]; particles=[]; drones=[]; exps=[]; lasers=[];
         frame=0; state='run';
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('hud').classList.remove('hidden');
-        updateHUD();
-        loop();
+        updateHUD(); loop();
     }
 
     function loop() {
         if(state!=='run') return;
-        requestAnimationFrame(loop);
-        frame++;
+        requestAnimationFrame(loop); frame++;
+        ctx.fillStyle = '#08080a'; ctx.fillRect(0,0,canvas.width,canvas.height); drawGrid();
 
-        // 背景
-        ctx.fillStyle = '#08080a'; ctx.fillRect(0,0,canvas.width,canvas.height);
-        drawGrid();
-
-        // 难度控制 (Horde Mode)
-        // 每分钟难度倍增
+        // 难度 & 性能优化
         let difficulty = 1 + Math.floor(frame / 1800); 
-        // 刷怪频率：从每50帧一只 -> 随着等级和时间减少
         let spawnRate = Math.max(5, 50 - player.lvl - difficulty*2);
-        
-        if(frame % spawnRate === 0) {
-            // 刷怪数量随时间增加
-            let count = 1 + Math.floor(frame/3600); // 1分钟后一次刷2只
+        // 性能卡点：只有当怪物数量小于上限时才生成
+        if(frame % spawnRate === 0 && enemies.length < MAX_ENEMIES) {
+            let count = 1 + Math.floor(frame/3600);
             for(let i=0; i<count; i++) spawnEnemy(difficulty);
         }
 
-        // 玩家更新
         updatePlayer();
-        
-        // 实体更新
-        [bullets, enemies, exps, particles, texts, drones].forEach(arr => {
+        // 统一更新循环 (反向遍历以安全删除)
+        [bullets, lasers, enemies, exps, particles, texts, drones].forEach(arr => {
             for(let i=arr.length-1; i>=0; i--) {
-                if(arr[i].update) arr[i].update();
-                if(arr[i].draw) arr[i].draw();
+                if(arr[i].update) arr[i].update(); if(arr[i].draw) arr[i].draw();
                 if((arr[i].life!==undefined && arr[i].life<=0) || arr[i].dead) arr.splice(i,1);
             }
         });
 
-        // 激光绘制在最上层
-        bullets = bullets.filter(b => b.life>0); // 激光放在bullets里还是单独处理？单独吧
-        // 这里偷懒，激光如果是瞬时的，在Player update里直接创建并draw了，
-        // 但为了持续效果，可以用一个laser list
-        // 下面补一个 laser list 逻辑
-
-        // HUD
-        if(frame%30===0) {
-            let s = Math.floor(frame/60);
-            document.getElementById('time-txt').innerText = `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
-        }
+        if(frame%30===0) { let s = Math.floor(frame/60); document.getElementById('time-txt').innerText = `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`; }
     }
 
     function updatePlayer() {
-        // 移动
-        let dx=0, dy=0;
         let s = player.spd * (1 + player.skills.speed*0.15);
-        if(keys['w']) dy-=1; if(keys['s']) dy+=1;
-        if(keys['a']) dx-=1; if(keys['d']) dx+=1;
-        if(dx||dy) {
-            let l=Math.hypot(dx,dy);
-            player.x += (dx/l)*s; player.y += (dy/l)*s;
-            bgOff.x -= (dx/l)*s*0.5; bgOff.y -= (dy/l)*s*0.5;
-        }
-        // 边界
-        player.x = Math.max(20, Math.min(canvas.width-20, player.x));
-        player.y = Math.max(20, Math.min(canvas.height-20, player.y));
+        let dx=0, dy=0; if(keys['w']) dy-=1; if(keys['s']) dy+=1; if(keys['a']) dx-=1; if(keys['d']) dx+=1;
+        if(dx||dy) { let l=Math.hypot(dx,dy); player.x+=(dx/l)*s; player.y+=(dy/l)*s; bgOff.x-=(dx/l)*s*0.5; bgOff.y-=(dy/l)*s*0.5; }
+        player.x = Math.max(20, Math.min(canvas.width-20, player.x)); player.y = Math.max(20, Math.min(canvas.height-20, player.y));
+        ctx.save(); ctx.translate(player.x, player.y); ctx.fillStyle = 'white'; ctx.shadowColor=C.p; ctx.shadowBlur=15;
+        ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(-8, 8); ctx.lineTo(-4,0); ctx.lineTo(-8,-8); ctx.fill(); ctx.restore();
 
-        // 绘制玩家
-        ctx.save(); ctx.translate(player.x, player.y);
-        ctx.fillStyle = 'white'; ctx.shadowColor=C.p; ctx.shadowBlur=15;
-        // 简单飞机形状
-        ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(-8, 8); ctx.lineTo(-4,0); ctx.lineTo(-8,-8); ctx.fill();
-        ctx.restore();
-
-        // 技能：主炮
         if(player.timers.shot > 0) player.timers.shot--;
         else {
-            let lvl = player.skills.shot;
-            let god = lvl>=5;
-            let target = findNearest(player.x, player.y);
+            let lvl = player.skills.shot, god = lvl>=5, target = findNearest(player.x, player.y);
             if(target) {
-                let count = 1 + Math.floor(lvl/2) + (god?2:0);
-                let dmg = 15 + lvl*5 + (god?30:0);
-                let angle = Math.atan2(target.y-player.y, target.x-player.x);
-                for(let i=0; i<count; i++) {
-                    let a = angle - 0.2*(count-1)/2 + 0.2*i;
-                    bullets.push(new Bullet(player.x, player.y, Math.cos(a)*10, Math.sin(a)*10, dmg, god));
-                }
-                player.timers.shot = god ? 10 : Math.max(5, 30 - lvl*2);
+                let count = 1 + Math.floor(lvl/2) + (god?2:0), dmg = 15 + lvl*5 + (god?30:0), angle = Math.atan2(target.y-player.y, target.x-player.x);
+                for(let i=0; i<count; i++) { let a = angle - 0.2*(count-1)/2 + 0.2*i; bullets.push(new Bullet(player.x, player.y, Math.cos(a)*10, Math.sin(a)*10, dmg, god)); }
+                player.timers.shot = god ? 8 : Math.max(5, 30 - lvl*2);
             }
         }
-
-        // 技能：激光 (瞬发持续)
         if(player.skills.laser > 0) {
             if(player.timers.laser > 0) player.timers.laser--;
             else {
-                let god = player.skills.laser>=5;
-                let target = findNearest(player.x, player.y);
-                if(target) {
-                    let a = Math.atan2(target.y-player.y, target.x-player.x);
-                    bullets.push(new LaserBeam(player.x, player.y, a, god));
-                    player.timers.laser = god ? 120 : 180;
-                }
+                let god = player.skills.laser>=5, target = findNearest(player.x, player.y);
+                if(target) { lasers.push(new LaserBeam(player.x, player.y, Math.atan2(target.y-player.y, target.x-player.x), god)); player.timers.laser = god ? 100 : 180; }
             }
         }
-
-        // 技能：护盾 (Guardian)
         if(player.skills.shield > 0) {
-            let lvl = player.skills.shield;
-            let god = lvl>=5;
-            let count = lvl + (god?4:0);
-            player.shieldAngle += (god?0.1:0.05);
+            let lvl=player.skills.shield, god=lvl>=5, count=lvl+(god?4:0); player.shieldAngle+=(god?0.1:0.05);
             for(let i=0; i<count; i++) {
-                let a = player.shieldAngle + (Math.PI*2/count)*i;
-                let r = 80 + (god?40:0);
-                let ox = player.x + Math.cos(a)*r;
-                let oy = player.y + Math.sin(a)*r;
-                
-                ctx.fillStyle = god?C.g:C.s; ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=10;
-                ctx.beginPath(); ctx.arc(ox, oy, god?8:5, 0, Math.PI*2); ctx.fill();
-                
-                // 碰撞
-                enemies.forEach(e => {
-                    if(Math.hypot(e.x-ox, e.y-oy) < 20) {
-                        e.hit(god?5:2);
-                        if(frame%5===0) spawnParticles(e.x,e.y,ctx.fillStyle,1);
-                    }
-                });
+                let a=player.shieldAngle+(Math.PI*2/count)*i, r=80+(god?40:0), ox=player.x+Math.cos(a)*r, oy=player.y+Math.sin(a)*r;
+                ctx.fillStyle=god?C.g:C.s; ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=10; ctx.beginPath(); ctx.arc(ox, oy, god?8:5, 0, Math.PI*2); ctx.fill();
+                enemies.forEach(e => { if(Math.hypot(e.x-ox, e.y-oy)<20) { e.hit(god?8:3); if(frame%5===0) spawnParticles(e.x,e.y,ctx.fillStyle,1,3); }});
             }
         }
     }
 
-    // --- 敌人系统 ---
     function spawnEnemy(diff) {
-        let e = {
-            x:0, y:0, 
-            hp: 20 + player.lvl*10 + diff*20,
-            maxHp: 20 + player.lvl*10 + diff*20,
-            r: 15, spd: 1.5 + Math.random()*0.5 + diff*0.1
-        };
-        // 屏幕边缘生成
+        if(enemies.length >= MAX_ENEMIES) return; // 性能卡点
+        let e = { x:0, y:0, hp: 20+player.lvl*10+diff*25, maxHp: 20+player.lvl*10+diff*25, r: 15, spd: 1.5+Math.random()*0.5+diff*0.15 };
         let side = Math.floor(Math.random()*4);
-        if(side===0) { e.x=Math.random()*canvas.width; e.y=-30; }
-        else if(side===1) { e.x=canvas.width+30; e.y=Math.random()*canvas.height; }
-        else if(side===2) { e.x=Math.random()*canvas.width; e.y=canvas.height+30; }
-        else { e.x=-30; e.y=Math.random()*canvas.height; }
-        
+        if(side===0) { e.x=Math.random()*canvas.width; e.y=-30; } else if(side===1) { e.x=canvas.width+30; e.y=Math.random()*canvas.height; }
+        else if(side===2) { e.x=Math.random()*canvas.width; e.y=canvas.height+30; } else { e.x=-30; e.y=Math.random()*canvas.height; }
         e.update = function() {
-            let a = Math.atan2(player.y-this.y, player.x-this.x);
-            this.x += Math.cos(a)*this.spd; this.y += Math.sin(a)*this.spd;
-            // 撞人
-            if(Math.hypot(player.x-this.x, player.y-this.y) < this.r+10) {
-                if(!godMode) player.hp -= 0.5;
-                updateHUD();
-                if(player.hp<=0) gameOver();
-            }
+            let a = Math.atan2(player.y-this.y, player.x-this.x); this.x += Math.cos(a)*this.spd; this.y += Math.sin(a)*this.spd;
+            if(Math.hypot(player.x-this.x, player.y-this.y) < this.r+10) { if(!godMode) player.hp -= 0.5; updateHUD(); if(player.hp<=0) gameOver(); }
         };
-        e.draw = function() {
-            ctx.fillStyle = C.r;
-            ctx.beginPath(); ctx.moveTo(this.x, this.y-this.r); ctx.lineTo(this.x+this.r, this.y+this.r); ctx.lineTo(this.x-this.r, this.y+this.r); ctx.fill();
-            // 血条
-            let p = this.hp/this.maxHp;
-            ctx.fillStyle='red'; ctx.fillRect(this.x-10, this.y-25, 20,4);
-            ctx.fillStyle='#0f0'; ctx.fillRect(this.x-10, this.y-25, 20*p,4);
-        };
-        e.hit = function(d) {
-            this.hp-=d; 
-            texts.push({x:this.x, y:this.y-20, t:Math.floor(d), life:1, c:'#fff'});
-            if(this.hp<=0) {
-                this.dead=true; player.kills++; player.exp+=10; // 这里直接加经验简化
-                if(player.exp >= player.nextExp) levelUp();
-                updateHUD();
-                spawnParticles(this.x, this.y, C.r, 5);
-            }
-        }
+        e.draw = function() { ctx.fillStyle = C.r; ctx.beginPath(); ctx.moveTo(this.x, this.y-this.r); ctx.lineTo(this.x+this.r, this.y+this.r); ctx.lineTo(this.x-this.r, this.y+this.r); ctx.fill(); let p = this.hp/this.maxHp; ctx.fillStyle='red'; ctx.fillRect(this.x-10, this.y-25, 20,4); ctx.fillStyle='#0f0'; ctx.fillRect(this.x-10, this.y-25, 20*p,4); };
+        e.hit = function(d) { this.hp-=d; texts.push({x:this.x, y:this.y-20, t:Math.floor(d), life:1, c:'#fff'}); if(this.hp<=0) { this.dead=true; player.kills++; player.exp+=15; if(player.exp >= player.nextExp) levelUp(); updateHUD(); spawnParticles(this.x, this.y, C.r, 6, 5); }}
         enemies.push(e);
     }
 
-    // --- 升级系统 ---
     function levelUp() {
-        player.exp -= player.nextExp;
-        player.lvl++;
-        player.nextExp = Math.floor(player.nextExp * 1.4);
-        state = 'upgrade';
-        
-        let ui = document.getElementById('upgrade-menu');
-        let box = document.getElementById('card-box');
-        ui.classList.remove('hidden');
-        box.innerHTML = '';
-        
-        // 随机选3个
+        player.exp -= player.nextExp; player.lvl++; player.nextExp = Math.floor(player.nextExp * 1.4); state = 'upgrade';
+        let ui = document.getElementById('upgrade-menu'), box = document.getElementById('card-box'); ui.classList.remove('hidden'); box.innerHTML = '';
         let pool = DB.filter(s => s.type==='passive' || player.skills[s.id]<5);
         for(let i=0; i<3; i++) {
-            if(!pool.length) break;
-            let idx = Math.floor(Math.random()*pool.length);
-            let s = pool[idx];
-            // 简单去重
-            // pool.splice(idx, 1); // 如果想严格不重复
-            
-            let div = document.createElement('div');
-            let lvl = player.skills[s.id] || 0;
-            let god = (s.type==='active' && lvl===4);
-            div.className = 'card ' + (god?'awakened':'');
-            div.style.setProperty('--c', god?C.g:s.col);
-            
-            div.innerHTML = `
-                <div style="font-size:12px;color:#888;">${god?'⚠️ AWAKENING':`LV ${lvl} -> ${lvl+1}`}</div>
-                <div class="icon">${s.icon}</div>
-                <div style="font-family:'Orbitron';color:${god?C.g:s.col}">${god?s.god:s.name}</div>
-                <div style="font-size:12px;color:#aaa;margin-top:5px;">${god?s.godDesc:s.desc}</div>
-            `;
-            div.onclick = () => {
-                applySkill(s.id);
-                ui.classList.add('hidden');
-                state = 'run';
-                loop();
-            };
-            box.appendChild(div);
+            if(!pool.length) break; let idx = Math.floor(Math.random()*pool.length); let s = pool[idx];
+            let div = document.createElement('div'); let lvl = player.skills[s.id] || 0; let god = (s.type==='active' && lvl===4);
+            div.className = 'card ' + (god?'awakened':''); div.style.setProperty('--c', god?C.g:s.col);
+            div.innerHTML = `<div style="font-size:12px;color:#888;">${god?'⚠️ AWAKENING':`LV ${lvl} -> ${lvl+1}`}</div><div class="icon">${s.icon}</div><div style="font-family:'Orbitron';color:${god?C.g:s.col}">${god?s.god:s.name}</div><div style="font-size:12px;color:#aaa;margin-top:5px;">${god?s.godDesc:s.desc}</div>`;
+            div.onclick = () => { applySkill(s.id); ui.classList.add('hidden'); state = 'run'; loop(); }; box.appendChild(div);
         }
     }
-
     function applySkill(id) {
         player.skills[id]++;
-        // 更新僚机实体
-        if(id === 'drone') {
-            drones = []; // 重置
-            let lvl = player.skills.drone;
-            let count = lvl + (lvl>=5?3:0); // 觉醒多3个
-            for(let i=0; i<count; i++) drones.push(new Drone(i, lvl>=5));
-        }
-        // 觉醒特效
-        if(player.skills[id] === 5) {
-            let msg = document.getElementById('awaken-msg');
-            msg.classList.add('show');
-            setTimeout(()=>msg.classList.remove('show'), 2000);
-            cheatLog(`Skill [${id}] AWAKENED!`);
-        }
+        if(id === 'drone') { drones = []; let lvl = player.skills.drone, count = lvl + (lvl>=5?3:0); for(let i=0; i<count; i++) drones.push(new Drone(i, lvl>=5)); }
+        if(player.skills[id] === 5) { let msg = document.getElementById('awaken-msg'); msg.classList.add('show'); setTimeout(()=>msg.classList.remove('show'), 2000); cheatLog(`Skill [${id}] AWAKENED!`); }
     }
-
-    // --- 辅助 ---
-    function drawGrid() {
-        ctx.strokeStyle='#222'; ctx.lineWidth=1; ctx.beginPath();
-        let gs=60; let ox=bgOff.x%gs; let oy=bgOff.y%gs;
-        for(let x=ox; x<canvas.width; x+=gs) { ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); }
-        for(let y=oy; y<canvas.height; y+=gs) { ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); }
-        ctx.stroke();
-    }
-    function updateHUD() {
-        document.getElementById('exp-bar').style.width = (player.exp/player.nextExp*100)+'%';
-        document.getElementById('lvl-txt').innerText = player.lvl;
-        document.getElementById('hp-txt').innerText = Math.floor(player.hp);
-        document.getElementById('kill-txt').innerText = player.kills;
-    }
-    function findNearest(x, y) {
-        let n=null, min=Infinity;
-        enemies.forEach(e => {
-            let d=Math.hypot(e.x-x, e.y-y);
-            if(d<min) { min=d; n=e; }
-        });
-        return n;
-    }
-    function spawnParticles(x,y,c,n) {
-        for(let i=0; i<n; i++) particles.push({
-            x, y, vx:(Math.random()-0.5)*5, vy:(Math.random()-0.5)*5, c, life:1,
-            update:function(){this.x+=this.vx;this.y+=this.vy;this.life-=0.05;},
-            draw:function(){ctx.globalAlpha=this.life;ctx.fillStyle=this.c;ctx.fillRect(this.x,this.y,3,3);ctx.globalAlpha=1;}
-        });
-    }
-    function gameOver() {
-        state='over';
-        document.getElementById('game-over').classList.remove('hidden');
-        document.getElementById('end-score').innerText = `Kills: ${player.kills} | Lv: ${player.lvl}`;
-    }
+    function drawGrid() { ctx.strokeStyle='#222'; ctx.lineWidth=1; ctx.beginPath(); let gs=60, ox=bgOff.x%gs, oy=bgOff.y%gs; for(let x=ox; x<canvas.width; x+=gs) { ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); } for(let y=oy; y<canvas.height; y+=gs) { ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); } ctx.stroke(); }
+    function updateHUD() { document.getElementById('exp-bar').style.width = (player.exp/player.nextExp*100)+'%'; document.getElementById('lvl-txt').innerText = player.lvl; document.getElementById('hp-txt').innerText = Math.floor(player.hp); document.getElementById('kill-txt').innerText = player.kills; }
+    function findNearest(x, y) { let n=null, min=Infinity; enemies.forEach(e => { let d=Math.hypot(e.x-x, e.y-y); if(d<min) { min=d; n=e; } }); return n; }
+    // 优化：粒子存在时间减短，速度加快
+    function spawnParticles(x,y,c,n,spd=3) { for(let i=0; i<n; i++) particles.push({ x, y, vx:(Math.random()-0.5)*spd, vy:(Math.random()-0.5)*spd, c, life:0.8, update:function(){this.x+=this.vx;this.y+=this.vy;this.life-=0.08;}, draw:function(){ctx.globalAlpha=this.life;ctx.fillStyle=this.c;ctx.fillRect(this.x,this.y,3,3);ctx.globalAlpha=1;} }); }
+    function gameOver() { state='over'; document.getElementById('game-over').classList.remove('hidden'); document.getElementById('end-score').innerText = `Kills: ${player.kills} | Lv: ${player.lvl}`; }
     function reroll() { levelUp(); }
-
-    // --- 作弊台逻辑 ---
-    function cheatLog(msg) {
-        let log = document.getElementById('console-log');
-        log.innerHTML += `<div>> ${msg}</div>`;
-        log.scrollTop = log.scrollHeight;
-    }
-    function cheat(type) {
-        if(type==='lvlup') { player.exp = player.nextExp; levelUp(); cheatLog('Forced Level Up'); }
-        if(type==='max_skills') {
-            ['shot','drone','laser','shield'].forEach(k => {
-                player.skills[k]=4; applySkill(k); // Set to 5
-            });
-            cheatLog('All Active Skills set to MAX (GOD MODE)');
-        }
-        if(type==='heal') { player.hp=player.maxHp; updateHUD(); cheatLog('HP Restored'); }
-        if(type==='godmode') { godMode=!godMode; cheatLog('GodMode: ' + godMode); }
-        if(type==='killall') { 
-            enemies.forEach(e => e.hit(9999)); 
-            cheatLog('Nuked all enemies'); 
-        }
-        if(type==='add_exp') {
-            let val = parseInt(document.getElementById('cheat-exp-val').value);
-            player.exp += val;
-            if(player.exp >= player.nextExp) levelUp();
-            updateHUD();
-            cheatLog(`Added ${val} EXP`);
-        }
-    }
+    function cheatLog(msg) { let log = document.getElementById('console-log'); log.innerHTML += `<div>> ${msg}</div>`; log.scrollTop = log.scrollHeight; }
+    function cheat(type) { if(type==='lvlup') { player.exp = player.nextExp; levelUp(); cheatLog('Forced Level Up'); } if(type==='max_skills') { ['shot','drone','laser','shield'].forEach(k => { player.skills[k]=4; applySkill(k); }); cheatLog('GOD MODE ACTIVATED'); } if(type==='heal') { player.hp=player.maxHp; updateHUD(); cheatLog('HP Restored'); } if(type==='godmode') { godMode=!godMode; cheatLog('GodMode: ' + godMode); } if(type==='killall') { enemies.forEach(e => e.hit(9999)); cheatLog('Nuked all enemies'); } }
 </script>
 </body>
 </html>
