@@ -2,19 +2,19 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>进阶肉鸽 - Boss与炫酷技能</title>
+    <title>肉鸽重制版 - 图片主角与慢速小怪</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #0a0a0a; /* 更深邃的背景 */
+            background-color: #0a0a0a;
             font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
             color: white;
             user-select: none;
         }
         canvas { display: block; }
 
-        /* --- UI 层 --- */
+        /* --- UI 层保持不变 --- */
         #ui-layer {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -22,8 +22,6 @@
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
         }
-        
-        /* 顶部 HUD */
         #hud-top {
             position: absolute; top: 20px; width: 100%;
             display: flex; flex-direction: column; align-items: center;
@@ -36,7 +34,7 @@
         }
         #exp-bar {
             width: 0%; height: 100%;
-            background: linear-gradient(90deg, #00f260, #0575e6); /* 更炫的渐变 */
+            background: linear-gradient(90deg, #00f260, #0575e6);
             border-radius: 8px; transition: width 0.3s ease-out;
         }
         #level-display {
@@ -49,7 +47,6 @@
         }
         @keyframes pulse { from { opacity: 0.6; transform: scale(0.95); } to { opacity: 1; transform: scale(1.05); } }
 
-        /* --- 升级选择面板 (优化版) --- */
         #upgrade-menu {
             pointer-events: auto; display: none;
             background: rgba(15, 15, 20, 0.95);
@@ -62,7 +59,6 @@
         #upgrade-menu h2 { margin-top: 0; color: #fff; text-shadow: 0 0 10px #00c6ff; }
         .cards-container { display: flex; gap: 25px; }
         
-        /* 卡片样式优化 */
         .card {
             background: linear-gradient(145deg, #2a2a35, #1c1c24);
             border: 3px solid #444;
@@ -72,7 +68,7 @@
             display: flex; flex-direction: column; align-items: center;
             text-align: center; position: relative; overflow: hidden;
         }
-        .card::before { /* 卡片光晕 */
+        .card::before {
             content: ''; position: absolute; top: -50%; left: -50%;
             width: 200%; height: 200%;
             background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
@@ -88,7 +84,6 @@
         .card-title { font-weight: 800; margin-bottom: 12px; color: #fff; font-size: 18px;}
         .card-desc { font-size: 13px; color: #bbb; line-height: 1.4; }
 
-        /* 游戏结束 */
         #game-over {
             pointer-events: auto; display: none;
             background: rgba(20,0,0,0.9); padding: 50px;
@@ -127,7 +122,6 @@
     </div>
 
 <script>
-    // --- 基础设置 ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
@@ -138,21 +132,19 @@
     window.addEventListener('resize', resize);
     resize();
 
+    // --- 新增：加载主角图片 ---
+    const playerSprite = new Image();
+    // 注意：Canvas直接绘制GIF通常只会显示第一帧静态图
+    playerSprite.src = 'https://files.catbox.moe/jgzjmo.gif'; 
+
     let gameState = 'playing'; 
     let frame = 0;
     let startTime = Date.now();
-    let bossActive = false; // Boss战状态标记
+    let bossActive = false;
 
     const keys = {};
     window.addEventListener('keydown', e => keys[e.key] = true);
     window.addEventListener('keyup', e => keys[e.key] = false);
-
-    // --- 实用函数 ---
-    // 获取随机颜色
-    function getRandomColor() {
-        const colors = ['#ff0055', '#00ddff', '#ffcc00', '#55ff00'];
-        return colors[Math.floor(Math.random() * colors.length)];
-    }
 
     // --- 游戏实体类 ---
 
@@ -160,9 +152,8 @@
         constructor() {
             this.x = canvas.width / 2;
             this.y = canvas.height / 2;
-            this.radius = 15;
-            // 玩家外观随等级变化，这里简化为一个基础发光色
-            this.baseColor = '#00c6ff'; 
+            this.radius = 20; // 稍微增大碰撞半径以匹配图片
+            this.drawSize = 50; // 图片绘制大小
             
             this.speed = 4;
             this.hp = 100;
@@ -179,28 +170,18 @@
             this.projectileCount = 1;
             this.penetration = 0;
 
-            // 技能等级记录 (用于视觉表现)
-            this.skillLevels = {
-                dmg: 0,
-                pierce: 0,
-                speed: 0,
-                multishot: 0
-            };
-
-            // 子弹视觉属性
+            this.skillLevels = { dmg: 0, pierce: 0, speed: 0, multishot: 0 };
             this.projSize = 5;
             this.projColor = '#ffff00';
         }
 
         update() {
-            // 移动与边界
             let dx = 0, dy = 0;
             if (keys['w'] || keys['ArrowUp']) dy -= 1;
             if (keys['s'] || keys['ArrowDown']) dy += 1;
             if (keys['a'] || keys['ArrowLeft']) dx -= 1;
             if (keys['d'] || keys['ArrowRight']) dx += 1;
             
-            // 简单的向量归一化，防止斜向移动过快
             const length = Math.hypot(dx, dy);
             if (length > 0) {
                 dx /= length; dy /= length;
@@ -211,7 +192,6 @@
             this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
             this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
 
-            // 射击
             if (frame - this.lastShot > this.fireRate) {
                 const target = this.findNearestEnemy();
                 if (target) {
@@ -222,30 +202,27 @@
         }
 
         draw() {
-            // 玩家光环 (随等级略微变大)
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius + 5 + this.level, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(0, 198, 255, 0.2)';
-            ctx.fill();
-
-            // 玩家核心
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = this.baseColor;
-            ctx.fill();
-            // 核心高光
-            ctx.beginPath();
-            ctx.arc(this.x - 5, this.y - 5, 5, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255,255,255,0.6)';
-            ctx.fill();
+            // 绘制图片主角
+            // 确保图片加载完成再绘制，否则用备用圆圈
+            if (playerSprite.complete) {
+                // drawImage 的坐标是左上角，所以要减去宽高的一半来居中
+                ctx.drawImage(playerSprite, 
+                    this.x - this.drawSize / 2, 
+                    this.y - this.drawSize / 2, 
+                    this.drawSize, this.drawSize);
+            } else {
+                // 图片未加载时的备用显示
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#00c6ff'; ctx.fill();
+            }
             
-            // 血条
+            // 血条 (保持不变)
             const hpBarWidth = 50;
             const hpPercent = this.hp / this.maxHp;
             ctx.fillStyle = '#330000';
-            ctx.fillRect(this.x - hpBarWidth/2, this.y + 25, hpBarWidth, 6);
+            ctx.fillRect(this.x - hpBarWidth/2, this.y + 30, hpBarWidth, 6);
             ctx.fillStyle = hpPercent > 0.5 ? '#00ff00' : (hpPercent > 0.2 ? '#ffff00' : '#ff0000');
-            ctx.fillRect(this.x - hpBarWidth/2, this.y + 25, hpBarWidth * hpPercent, 6);
+            ctx.fillRect(this.x - hpBarWidth/2, this.y + 30, hpBarWidth * hpPercent, 6);
         }
 
         findNearestEnemy() {
@@ -266,12 +243,7 @@
             const spread = 0.15;
             const startAngle = angle - (spread * (this.projectileCount - 1)) / 2;
 
-            // 枪口火焰特效
-            createExplosion(
-                this.x + Math.cos(angle) * 20, 
-                this.y + Math.sin(angle) * 20, 
-                this.projColor, 8, 2, 15
-            );
+            createExplosion(this.x + Math.cos(angle) * 20, this.y + Math.sin(angle) * 20, this.projColor, 8, 2, 15);
 
             for (let i = 0; i < this.projectileCount; i++) {
                 const currentAngle = startAngle + i * spread;
@@ -279,7 +251,6 @@
                     x: Math.cos(currentAngle) * this.projectileSpeed,
                     y: Math.sin(currentAngle) * this.projectileSpeed
                 };
-                // 传入当前的视觉属性
                 projectiles.push(new Projectile(this.x, this.y, velocity, this.damage, this.penetration, this.projSize, this.projColor));
             }
         }
@@ -296,27 +267,18 @@
             this.level++;
             this.exp -= this.expToNextLevel;
             this.expToNextLevel = Math.floor(this.expToNextLevel * 1.4);
-            
-            // 检查是否触发 Boss 战 (每5级)
-            if (this.level % 5 === 0) {
-                triggerBossFight();
-            }
-
+            if (this.level % 5 === 0) triggerBossFight();
             showUpgradeMenu();
         }
         
-        // 更新视觉属性 (在选择技能后调用)
         updateVisuals() {
-            // 伤害越高，子弹越大，越红
             this.projSize = 5 + this.skillLevels.dmg * 0.8;
             const red = Math.min(255, 200 + this.skillLevels.dmg * 15);
             const green = Math.max(100, 255 - this.skillLevels.dmg * 20);
             this.projColor = `rgb(${red}, ${green}, 0)`;
-
-            // 如果有穿透，强制变为青色系，且看起来更锋利
             if (this.skillLevels.pierce > 0) {
                  this.projColor = '#00ffff';
-                 this.projSize = 4 + this.skillLevels.dmg * 0.5; // 穿透弹稍微细一点
+                 this.projSize = 4 + this.skillLevels.dmg * 0.5;
             }
         }
     }
@@ -338,9 +300,9 @@
         checkCollisionWithPlayer() {
             const dist = Math.hypot(this.x - player.x, this.y - player.y);
             if (dist < this.radius + player.radius) {
-                player.hp -= (this instanceof Boss ? 30 : 10); // Boss伤害更高
+                player.hp -= (this instanceof Boss ? 30 : 10);
                 updateUI();
-                if (!(this instanceof Boss)) this.hp = 0; // 小怪自爆
+                if (!(this instanceof Boss)) this.hp = 0;
                 createExplosion(this.x, this.y, 'red', 20, 5);
                 if (player.hp <= 0) endGame();
             }
@@ -350,7 +312,6 @@
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
             ctx.fillStyle = this.color;
             ctx.fill();
-            // 简单的敌人血条 (受伤才显示)
             if (this.hp < this.maxHp) {
                  ctx.fillStyle = 'red'; ctx.fillRect(this.x-this.radius, this.y-this.radius-10, this.radius*2, 4);
                  ctx.fillStyle = '#0f0'; ctx.fillRect(this.x-this.radius, this.y-this.radius-10, this.radius*2 * (this.hp/this.maxHp), 4);
@@ -358,12 +319,15 @@
         }
     }
 
-    // 普通小怪
+    // 普通小怪 (速度已修改)
     class Enemy extends EnemyBase {
         constructor() {
             const spawnPos = getSpawnPosition();
             const hp = 25 + (player.level * 8);
-            const speed = 1.8 + Math.random() * 0.8 + (player.level * 0.05);
+            // --- 修改点：降低小怪速度 ---
+            // 原速度: 1.8 + 随机(0.8) + 成长(0.05)
+            // 新速度: 0.7 + 随机(0.6) + 成长(0.02) -> 显著变慢
+            const speed = 0.7 + Math.random() * 0.6 + (player.level * 0.02);
             super(spawnPos.x, spawnPos.y, 12, '#ff4444', hp, speed, 8 + player.level);
         }
     }
@@ -371,27 +335,20 @@
     // Boss 类
     class Boss extends EnemyBase {
         constructor() {
-            const spawnPos = getSpawnPosition(true); // 确保在屏幕外生成
-            // Boss血量极高，速度慢
+            const spawnPos = getSpawnPosition(true);
             const hp = 800 + (player.level * 150); 
-            super(spawnPos.x, spawnPos.y, 40, '#8a00ff', hp, 1.2, 300); // 紫色大Boss
+            super(spawnPos.x, spawnPos.y, 40, '#8a00ff', hp, 1.2, 300);
             this.isBoss = true;
         }
         draw() {
-            // Boss 独特外观：带光晕
             ctx.save();
-            ctx.shadowColor = this.color;
-            ctx.shadowBlur = 30;
+            ctx.shadowColor = this.color; ctx.shadowBlur = 30;
             super.draw();
             ctx.restore();
-            // Boss 核心
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius * 0.6, 0, Math.PI*2);
-            ctx.fillStyle = '#aa33ff'; ctx.fill();
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius * 0.6, 0, Math.PI*2); ctx.fillStyle = '#aa33ff'; ctx.fill();
         }
     }
 
-    // 获取屏幕外的生成点
     function getSpawnPosition(forceOuter = false) {
         let x, y;
         const margin = forceOuter ? 100 : 30;
@@ -411,86 +368,62 @@
             this.damage = damage; this.penetration = penetration;
             this.radius = size; this.color = color;
             this.hitList = [];
-            // 穿透弹加个尾迹效果标记
             this.hasTrail = penetration > 0;
         }
         update() {
-            this.x += this.velocity.x;
-            this.y += this.velocity.y;
-            if (this.hasTrail && frame % 3 === 0) {
-                 createExplosion(this.x, this.y, this.color, 3, 1, 5); // 小尾迹
-            }
+            this.x += this.velocity.x; this.y += this.velocity.y;
+            if (this.hasTrail && frame % 3 === 0) createExplosion(this.x, this.y, this.color, 3, 1, 5);
         }
         draw() {
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = this.color;
-            // 给子弹加点发光
-            ctx.shadowColor = this.color;
-            ctx.shadowBlur = 15;
-            ctx.fill();
-            ctx.restore();
+            ctx.save(); ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color; ctx.shadowColor = this.color; ctx.shadowBlur = 15;
+            ctx.fill(); ctx.restore();
         }
     }
 
     class ExpOrb {
         constructor(x, y, value) {
             this.x = x; this.y = y; this.value = value;
-            this.radius = 6;
-            this.color = value > 100 ? '#ffcc00' : '#00ffaa'; // 大经验球是金色
+            this.radius = 6; this.color = value > 100 ? '#ffcc00' : '#00ffaa';
         }
         update() {
             const dist = Math.hypot(this.x - player.x, this.y - player.y);
-            const attractRange = 120 + player.level * 2; // 拾取范围随等级增加
+            const attractRange = 120 + player.level * 2;
             if (dist < attractRange) {
                 const pullStrength = (1 - dist / attractRange) * 8;
                 this.x += (player.x - this.x) * 0.05 * pullStrength;
                 this.y += (player.y - this.y) * 0.05 * pullStrength;
             }
             if (dist < player.radius + this.radius) {
-                player.gainExp(this.value);
-                this.markedForDeletion = true;
+                player.gainExp(this.value); this.markedForDeletion = true;
             }
         }
         draw() {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = this.color;
-            ctx.shadowColor = this.color; ctx.shadowBlur = 10; // 经验球发光
-            ctx.fill();
-            ctx.shadowBlur = 0;
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color; ctx.shadowColor = this.color; ctx.shadowBlur = 10;
+            ctx.fill(); ctx.shadowBlur = 0;
         }
     }
 
-    // 粒子系统 (优化版)
     class Particle {
         constructor(x, y, color, speedMult, size) {
             this.x = x; this.y = y; this.color = color;
             const angle = Math.random() * Math.PI * 2;
             const speed = Math.random() * speedMult;
             this.velocity = { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed };
-            this.alpha = 1;
-            this.decay = 0.03 + Math.random() * 0.03;
+            this.alpha = 1; this.decay = 0.03 + Math.random() * 0.03;
             this.size = size || (2 + Math.random() * 3);
         }
         update() {
-            this.x += this.velocity.x;
-            this.y += this.velocity.y;
-            this.alpha -= this.decay;
+            this.x += this.velocity.x; this.y += this.velocity.y; this.alpha -= this.decay;
         }
         draw() {
-            ctx.save();
-            ctx.globalAlpha = this.alpha;
-            ctx.fillStyle = this.color;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
-            ctx.fill();
-            ctx.restore();
+            ctx.save(); ctx.globalAlpha = this.alpha; ctx.fillStyle = this.color;
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+            ctx.fill(); ctx.restore();
         }
     }
 
-    // --- 全局变量 ---
     let player = new Player();
     let enemies = [];
     let projectiles = [];
@@ -498,7 +431,6 @@
     let particles = [];
 
     function spawnEnemy() {
-        // 如果 Boss 在场，不生成小怪
         if (bossActive) return;
         enemies.push(new Enemy());
     }
@@ -506,12 +438,11 @@
     function triggerBossFight() {
         bossActive = true;
         document.getElementById('boss-warning').style.display = 'block';
-        // 清理掉屏幕外过远的小怪，聚焦Boss
         enemies = enemies.filter(e => Math.hypot(e.x - player.x, e.y - player.y) < canvas.width/2);
         setTimeout(() => {
              enemies.push(new Boss());
              document.getElementById('boss-warning').style.display = 'none';
-        }, 2000); // 2秒警告后生成
+        }, 2000);
     }
 
     function createExplosion(x, y, color, count = 10, speed = 5, size = 0) {
@@ -520,72 +451,48 @@
         }
     }
 
-    // --- 主循环 ---
     function animate() {
         if (gameState !== 'playing') return;
         requestAnimationFrame(animate);
         
-        // 稍微深一点的拖尾，增加速度感
         ctx.fillStyle = 'rgba(10, 10, 10, 0.4)'; 
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         frame++;
 
-        // 生成逻辑调整
         let spawnRate = Math.max(15, 50 - player.level * 1.5); 
-        if (frame % Math.floor(spawnRate) === 0) {
-            spawnEnemy();
-        }
+        if (frame % Math.floor(spawnRate) === 0) spawnEnemy();
 
         player.update();
         player.draw();
 
-        // 更新子弹
         projectiles.forEach((p, index) => {
-            p.update();
-            p.draw();
+            p.update(); p.draw();
             if (p.x < -50 || p.x > canvas.width+50 || p.y < -50 || p.y > canvas.height+50) {
                 projectiles.splice(index, 1); return;
             }
-
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const enemy = enemies[i];
                 const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y);
                 if (dist < enemy.radius + p.radius && !p.hitList.includes(enemy)) {
-                    enemy.hp -= p.damage;
-                    p.hitList.push(enemy);
-                    // 击中特效：橙色火花
+                    enemy.hp -= p.damage; p.hitList.push(enemy);
                     createExplosion(p.x, p.y, '#ffaa00', 5, 4, 2);
-
                     if (enemy.hp <= 0) {
-                        // 死亡爆炸特效
                         createExplosion(enemy.x, enemy.y, enemy.color, enemy instanceof Boss ? 50 : 15, enemy instanceof Boss ? 10 : 6);
                         expOrbs.push(new ExpOrb(enemy.x, enemy.y, enemy.expValue));
                         enemies.splice(i, 1);
-                        // Boss死亡处理
-                        if (enemy instanceof Boss) {
-                            bossActive = false;
-                        }
+                        if (enemy instanceof Boss) bossActive = false;
                     }
-                    if (p.penetration > 0) p.penetration--;
-                    else { projectiles.splice(index, 1); break; }
+                    if (p.penetration > 0) p.penetration--; else { projectiles.splice(index, 1); break; }
                 }
             }
         });
 
         enemies.forEach(e => { e.update(); e.draw(); });
-        expOrbs.forEach((o, i) => { 
-            o.update(); o.draw(); 
-            if(o.markedForDeletion) expOrbs.splice(i, 1); 
-        });
-        particles.forEach((p, i) => { 
-            p.update(); p.draw(); 
-            if(p.alpha <= 0) particles.splice(i, 1); 
-        });
+        expOrbs.forEach((o, i) => { o.update(); o.draw(); if(o.markedForDeletion) expOrbs.splice(i, 1); });
+        particles.forEach((p, i) => { p.update(); p.draw(); if(p.alpha <= 0) particles.splice(i, 1); });
     }
 
-    // --- 升级系统 (优化) ---
-    // 定义技能及其视觉影响
     const skillPool = [
         { id: 'multishot', name: '分裂箭矢', desc: '额外发射一枚子弹', icon: '🏹', color: '#00c6ff',
           effect: () => { player.projectileCount++; player.skillLevels.multishot++; } },
@@ -605,7 +512,6 @@
         gameState = 'paused';
         const container = document.getElementById('cards-container');
         container.innerHTML = '';
-        // 随机洗牌算法 (Fisher-Yates)
         const shuffled = [...skillPool];
         for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -616,19 +522,16 @@
         choices.forEach(skill => {
             const card = document.createElement('div');
             card.className = 'card';
-            card.style.borderColor = skill.color; // 卡片边框色跟随技能主题色
-            card.style.color = skill.color;
+            card.style.borderColor = skill.color; card.style.color = skill.color;
             card.innerHTML = `
                 <div class="card-icon" style="text-shadow: 0 0 20px ${skill.color}">${skill.icon}</div>
                 <div class="card-title" style="color: ${skill.color}">${skill.name}</div>
                 <div class="card-desc">${skill.desc}</div>
             `;
             card.onclick = () => {
-                skill.effect();
-                player.updateVisuals(); // 应用视觉变化
+                skill.effect(); player.updateVisuals();
                 document.getElementById('upgrade-menu').style.display = 'none';
-                gameState = 'playing';
-                animate();
+                gameState = 'playing'; animate();
             };
             container.appendChild(card);
         });
@@ -652,7 +555,6 @@
         `;
     }
 
-    // 启动
     animate();
 
 </script>
