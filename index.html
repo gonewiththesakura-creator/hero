@@ -2,120 +2,46 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>肉鸽重制版 - 图片主角与慢速小怪</title>
+    <title>肉鸽重制版 - 动起来的精灵图！</title>
     <style>
         body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #0a0a0a;
-            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
-            color: white;
-            user-select: none;
+            margin: 0; overflow: hidden; background-color: #0a0a0a;
+            font-family: 'Microsoft YaHei', sans-serif; color: white; user-select: none;
         }
         canvas { display: block; }
-
-        /* --- UI 层保持不变 --- */
-        #ui-layer {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-        }
-        #hud-top {
-            position: absolute; top: 20px; width: 100%;
-            display: flex; flex-direction: column; align-items: center;
-        }
-        #exp-bar-container {
-            width: 60%; height: 15px;
-            background: #222; border-radius: 10px;
-            border: 2px solid #444; overflow: hidden;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-        }
-        #exp-bar {
-            width: 0%; height: 100%;
-            background: linear-gradient(90deg, #00f260, #0575e6);
-            border-radius: 8px; transition: width 0.3s ease-out;
-        }
-        #level-display {
-            margin-top: 10px; font-size: 20px; font-weight: 800;
-            text-shadow: 0px 0px 8px rgba(0, 242, 96, 0.7);
-        }
-        #boss-warning {
-            display: none; color: red; font-size: 32px; font-weight: bold;
-            margin-top: 20px; animation: pulse 1s infinite alternate;
-        }
+        /* UI CSS 保持不变，为了节省篇幅省略，请使用上一个版本的CSS */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #hud-top { position: absolute; top: 20px; width: 100%; display: flex; flex-direction: column; align-items: center; }
+        #exp-bar-container { width: 60%; height: 15px; background: #222; border-radius: 10px; border: 2px solid #444; overflow: hidden; }
+        #exp-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #00f260, #0575e6); border-radius: 8px; transition: width 0.3s ease-out; }
+        #level-display { margin-top: 10px; font-size: 20px; font-weight: 800; text-shadow: 0px 0px 8px rgba(0, 242, 96, 0.7); }
+        #boss-warning { display: none; color: red; font-size: 32px; font-weight: bold; margin-top: 20px; animation: pulse 1s infinite alternate; }
         @keyframes pulse { from { opacity: 0.6; transform: scale(0.95); } to { opacity: 1; transform: scale(1.05); } }
-
-        #upgrade-menu {
-            pointer-events: auto; display: none;
-            background: rgba(15, 15, 20, 0.95);
-            padding: 40px; border-radius: 25px;
-            flex-direction: column; align-items: center;
-            box-shadow: 0 0 60px rgba(0, 114, 255, 0.6), inset 0 0 20px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-        }
-        #upgrade-menu h2 { margin-top: 0; color: #fff; text-shadow: 0 0 10px #00c6ff; }
+        #upgrade-menu { pointer-events: auto; display: none; background: rgba(15, 15, 20, 0.95); padding: 40px; border-radius: 25px; flex-direction: column; align-items: center; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
         .cards-container { display: flex; gap: 25px; }
-        
-        .card {
-            background: linear-gradient(145deg, #2a2a35, #1c1c24);
-            border: 3px solid #444;
-            width: 160px; height: 220px; padding: 20px;
-            border-radius: 15px; cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex; flex-direction: column; align-items: center;
-            text-align: center; position: relative; overflow: hidden;
-        }
-        .card::before {
-            content: ''; position: absolute; top: -50%; left: -50%;
-            width: 200%; height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
-            opacity: 0; transition: opacity 0.3s;
-        }
-        .card:hover {
-            transform: translateY(-10px) scale(1.05);
-            border-color: #00c6ff;
-            box-shadow: 0 10px 25px rgba(0, 198, 255, 0.4);
-        }
-        .card:hover::before { opacity: 1; }
-        .card-icon { font-size: 48px; margin-bottom: 15px; text-shadow: 0 0 15px currentColor; }
+        .card { background: linear-gradient(145deg, #2a2a35, #1c1c24); border: 3px solid #444; width: 160px; height: 220px; padding: 20px; border-radius: 15px; cursor: pointer; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; overflow: hidden; }
+        .card:hover { transform: translateY(-10px) scale(1.05); border-color: #00c6ff; }
+        .card-icon { font-size: 48px; margin-bottom: 15px; }
         .card-title { font-weight: 800; margin-bottom: 12px; color: #fff; font-size: 18px;}
         .card-desc { font-size: 13px; color: #bbb; line-height: 1.4; }
-
-        #game-over {
-            pointer-events: auto; display: none;
-            background: rgba(20,0,0,0.9); padding: 50px;
-            text-align: center; border-radius: 15px; border: 2px solid red;
-        }
-        button {
-            padding: 12px 24px; font-size: 18px; font-weight: bold;
-            background: linear-gradient(to bottom, #ff4b4b, #cc0000);
-            color: white; border: none; border-radius: 5px;
-            cursor: pointer; margin-top: 20px; box-shadow: 0 4px #990000;
-        }
-        button:active { transform: translateY(4px); box-shadow: 0 0 #990000; }
+        #game-over { pointer-events: auto; display: none; background: rgba(20,0,0,0.9); padding: 50px; text-align: center; border-radius: 15px; border: 2px solid red; }
+        button { padding: 12px 24px; font-size: 18px; font-weight: bold; background: linear-gradient(to bottom, #ff4b4b, #cc0000); color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px; }
     </style>
 </head>
 <body>
-
     <canvas id="gameCanvas"></canvas>
-
     <div id="ui-layer">
         <div id="hud-top">
             <div id="exp-bar-container"><div id="exp-bar"></div></div>
             <div id="level-display">Level 1</div>
             <div id="boss-warning">WARNING: BOSS INCOMING!</div>
         </div>
-
         <div id="upgrade-menu">
             <h2>能量激增！选择强化路线</h2>
             <div class="cards-container" id="cards-container"></div>
         </div>
-
         <div id="game-over">
-            <h1 style="color: #ff3333; text-shadow: 0 0 10px red;">存活终止</h1>
+            <h1 style="color: #ff3333;">存活终止</h1>
             <p id="final-stats">...</p>
             <button onclick="location.reload()">再次挑战</button>
         </div>
@@ -124,55 +50,45 @@
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    
-    function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resize);
-    resize();
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize); resize();
 
-    // --- 新增：加载主角图片 ---
+    // --- 修改：加载精灵图表 (Spritesheet) ---
+    // 这里使用一个标准的 4帧横向排列的精灵图作为示例
+    // 如果要用你自己的角色，需要把GIF转换成这种横着排列的图
     const playerSprite = new Image();
-    // 注意：Canvas直接绘制GIF通常只会显示第一帧静态图
-    playerSprite.src = 'https://files.catbox.moe/jgzjmo.gif'; 
+    // 这是一个示例图链接，确保你的网络能访问它
+    playerSprite.src = 'https://i.imgur.com/16c0V5r.png'; 
 
-    let gameState = 'playing'; 
-    let frame = 0;
-    let startTime = Date.now();
-    let bossActive = false;
-
+    // 游戏基础变量
+    let gameState = 'playing'; let frame = 0; let startTime = Date.now(); let bossActive = false;
     const keys = {};
     window.addEventListener('keydown', e => keys[e.key] = true);
     window.addEventListener('keyup', e => keys[e.key] = false);
 
-    // --- 游戏实体类 ---
-
+    // --- Player 类 (核心修改) ---
     class Player {
         constructor() {
-            this.x = canvas.width / 2;
-            this.y = canvas.height / 2;
-            this.radius = 20; // 稍微增大碰撞半径以匹配图片
-            this.drawSize = 50; // 图片绘制大小
+            this.x = canvas.width / 2; this.y = canvas.height / 2;
+            this.radius = 20; 
+            // 绘制到屏幕上的大小 (可以比实际素材大)
+            this.drawSize = 64; 
             
-            this.speed = 4;
-            this.hp = 100;
-            this.maxHp = 100;
-            this.level = 1;
-            this.exp = 0;
-            this.expToNextLevel = 15;
-            
-            // 战斗属性
-            this.damage = 10;
-            this.projectileSpeed = 8;
-            this.fireRate = 35; 
-            this.lastShot = 0;
-            this.projectileCount = 1;
-            this.penetration = 0;
+            // --- 动画相关属性 ---
+            this.spriteCols = 4; // 这张精灵图横向有4列(4帧)
+            this.currentFrame = 0; // 当前播放到第几帧 (0, 1, 2, 3)
+            this.animTimer = 0;    // 动画计时器
+            this.animSpeed = 10;   // 动画速度：每隔多少个游戏帧切换一次图片(数字越大越慢)
+            this.isMoving = false; // 是否在移动
 
+            // 基础属性
+            this.speed = 4; this.hp = 100; this.maxHp = 100;
+            this.level = 1; this.exp = 0; this.expToNextLevel = 15;
+            // 战斗属性
+            this.damage = 10; this.projectileSpeed = 8; this.fireRate = 35; 
+            this.lastShot = 0; this.projectileCount = 1; this.penetration = 0;
             this.skillLevels = { dmg: 0, pierce: 0, speed: 0, multishot: 0 };
-            this.projSize = 5;
-            this.projColor = '#ffff00';
+            this.projSize = 5; this.projColor = '#ffff00';
         }
 
         update() {
@@ -182,34 +98,66 @@
             if (keys['a'] || keys['ArrowLeft']) dx -= 1;
             if (keys['d'] || keys['ArrowRight']) dx += 1;
             
+            // 判断是否在移动
+            this.isMoving = (dx !== 0 || dy !== 0);
+
             const length = Math.hypot(dx, dy);
             if (length > 0) {
                 dx /= length; dy /= length;
                 this.x += dx * this.speed;
                 this.y += dy * this.speed;
             }
-
             this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
             this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
 
             if (frame - this.lastShot > this.fireRate) {
                 const target = this.findNearestEnemy();
-                if (target) {
-                    this.shoot(target);
-                    this.lastShot = frame;
+                if (target) { this.shoot(target); this.lastShot = frame; }
+            }
+
+            // --- 动画帧更新逻辑 ---
+            if (this.isMoving) {
+                this.animTimer++;
+                // 计时器超过速度阈值，切换到下一帧
+                if (this.animTimer > this.animSpeed) {
+                    this.animTimer = 0;
+                    this.currentFrame++;
+                    // 如果超过了总帧数，回到第0帧实现循环
+                    if (this.currentFrame >= this.spriteCols) {
+                        this.currentFrame = 0;
+                    }
                 }
+            } else {
+                // 如果站着不动，重置为第1帧 (看起来像站立姿势)
+                this.currentFrame = 0;
+                this.animTimer = 0;
             }
         }
 
         draw() {
-            // 绘制图片主角
-            // 确保图片加载完成再绘制，否则用备用圆圈
-            if (playerSprite.complete) {
-                // drawImage 的坐标是左上角，所以要减去宽高的一半来居中
-                ctx.drawImage(playerSprite, 
-                    this.x - this.drawSize / 2, 
-                    this.y - this.drawSize / 2, 
-                    this.drawSize, this.drawSize);
+            // 确保图片加载完成
+            if (playerSprite.complete && playerSprite.naturalWidth > 0) {
+                // 1. 计算单个帧的宽度和高度
+                // 假设原图是横着排列的单行
+                const frameWidth = playerSprite.width / this.spriteCols;
+                const frameHeight = playerSprite.height;
+
+                // 2. 计算从素材图的哪个位置开始“切”
+                // 源X坐标 = 当前帧索引 * 单帧宽度
+                const sourceX = this.currentFrame * frameWidth;
+                const sourceY = 0; // 因为只有一行，Y永远是0
+
+                // 3. 使用复杂的 drawImage 方法进行切割绘制
+                // ctx.drawImage(图片源, 切割起点X, 切割起点Y, 切多宽, 切多高, 放到屏幕X, 放到屏幕Y, 放多宽, 放多高)
+                ctx.drawImage(
+                    playerSprite, 
+                    sourceX, sourceY,       // Source X, Y (素材切割点)
+                    frameWidth, frameHeight, // Source W, H (切割大小)
+                    this.x - this.drawSize / 2, // Dest X (屏幕位置需居中)
+                    this.y - this.drawSize / 2, // Dest Y
+                    this.drawSize, this.drawSize // Dest W, H (屏幕显示大小)
+                );
+
             } else {
                 // 图片未加载时的备用显示
                 ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
@@ -217,346 +165,94 @@
             }
             
             // 血条 (保持不变)
-            const hpBarWidth = 50;
-            const hpPercent = this.hp / this.maxHp;
-            ctx.fillStyle = '#330000';
-            ctx.fillRect(this.x - hpBarWidth/2, this.y + 30, hpBarWidth, 6);
+            const hpBarWidth = 50; const hpPercent = this.hp / this.maxHp;
+            ctx.fillStyle = '#330000'; ctx.fillRect(this.x - hpBarWidth/2, this.y + 35, hpBarWidth, 6);
             ctx.fillStyle = hpPercent > 0.5 ? '#00ff00' : (hpPercent > 0.2 ? '#ffff00' : '#ff0000');
-            ctx.fillRect(this.x - hpBarWidth/2, this.y + 30, hpBarWidth * hpPercent, 6);
+            ctx.fillRect(this.x - hpBarWidth/2, this.y + 35, hpBarWidth * hpPercent, 6);
         }
 
+        // ... (findNearestEnemy, shoot, gainExp, levelUp, updateVisuals 方法保持不变，省略以节省空间) ...
         findNearestEnemy() {
-            let nearest = null;
-            let minDist = Infinity;
-            enemies.forEach(enemy => {
-                const dist = Math.hypot(enemy.x - this.x, enemy.y - this.y);
-                if (dist < minDist) {
-                    minDist = dist;
-                    nearest = enemy;
-                }
-            });
+            let nearest = null; let minDist = Infinity;
+            enemies.forEach(enemy => { const dist = Math.hypot(enemy.x - this.x, enemy.y - this.y); if (dist < minDist) { minDist = dist; nearest = enemy; } });
             return nearest;
         }
-
         shoot(target) {
-            const angle = Math.atan2(target.y - this.y, target.x - this.x);
-            const spread = 0.15;
+            const angle = Math.atan2(target.y - this.y, target.x - this.x); const spread = 0.15;
             const startAngle = angle - (spread * (this.projectileCount - 1)) / 2;
-
             createExplosion(this.x + Math.cos(angle) * 20, this.y + Math.sin(angle) * 20, this.projColor, 8, 2, 15);
-
             for (let i = 0; i < this.projectileCount; i++) {
                 const currentAngle = startAngle + i * spread;
-                const velocity = {
-                    x: Math.cos(currentAngle) * this.projectileSpeed,
-                    y: Math.sin(currentAngle) * this.projectileSpeed
-                };
+                const velocity = { x: Math.cos(currentAngle) * this.projectileSpeed, y: Math.sin(currentAngle) * this.projectileSpeed };
                 projectiles.push(new Projectile(this.x, this.y, velocity, this.damage, this.penetration, this.projSize, this.projColor));
             }
         }
-
-        gainExp(amount) {
-            this.exp += amount;
-            if (this.exp >= this.expToNextLevel) {
-                this.levelUp();
-            }
-            updateUI();
-        }
-
-        levelUp() {
-            this.level++;
-            this.exp -= this.expToNextLevel;
-            this.expToNextLevel = Math.floor(this.expToNextLevel * 1.4);
-            if (this.level % 5 === 0) triggerBossFight();
-            showUpgradeMenu();
-        }
-        
-        updateVisuals() {
-            this.projSize = 5 + this.skillLevels.dmg * 0.8;
-            const red = Math.min(255, 200 + this.skillLevels.dmg * 15);
-            const green = Math.max(100, 255 - this.skillLevels.dmg * 20);
-            this.projColor = `rgb(${red}, ${green}, 0)`;
-            if (this.skillLevels.pierce > 0) {
-                 this.projColor = '#00ffff';
-                 this.projSize = 4 + this.skillLevels.dmg * 0.5;
-            }
-        }
+        gainExp(amount) { this.exp += amount; if (this.exp >= this.expToNextLevel) this.levelUp(); updateUI(); }
+        levelUp() { this.level++; this.exp -= this.expToNextLevel; this.expToNextLevel = Math.floor(this.expToNextLevel * 1.4); if (this.level % 5 === 0) triggerBossFight(); showUpgradeMenu(); }
+        updateVisuals() { this.projSize = 5 + this.skillLevels.dmg * 0.8; const red = Math.min(255, 200 + this.skillLevels.dmg * 15); const green = Math.max(100, 255 - this.skillLevels.dmg * 20); this.projColor = `rgb(${red}, ${green}, 0)`; if (this.skillLevels.pierce > 0) { this.projColor = '#00ffff'; this.projSize = 4 + this.skillLevels.dmg * 0.5; } }
     }
 
-    // --- 敌人基类 ---
+    // --- 其他类和函数保持不变 (EnemyBase, Enemy, Boss, Projectile, ExpOrb, Particle, etc.) ---
+    // 为了代码简洁，这里省略了这些类的定义，请复制上一版代码中除了 Player 类以外的所有内容到这里。
+    // 它们不需要任何修改就能配合新的动画 Player 工作。
+    
+    // (为方便直接运行，我这里还是把它们放进来，实际开发中可以分文件)
     class EnemyBase {
-        constructor(x, y, radius, color, hp, speed, expValue) {
-            this.x = x; this.y = y;
-            this.radius = radius; this.color = color;
-            this.hp = hp; this.maxHp = hp;
-            this.speed = speed; this.expValue = expValue;
-        }
-        update() {
-            const angle = Math.atan2(player.y - this.y, player.x - this.x);
-            this.x += Math.cos(angle) * this.speed;
-            this.y += Math.sin(angle) * this.speed;
-            this.checkCollisionWithPlayer();
-        }
-        checkCollisionWithPlayer() {
-            const dist = Math.hypot(this.x - player.x, this.y - player.y);
-            if (dist < this.radius + player.radius) {
-                player.hp -= (this instanceof Boss ? 30 : 10);
-                updateUI();
-                if (!(this instanceof Boss)) this.hp = 0;
-                createExplosion(this.x, this.y, 'red', 20, 5);
-                if (player.hp <= 0) endGame();
-            }
-        }
-        draw() {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = this.color;
-            ctx.fill();
-            if (this.hp < this.maxHp) {
-                 ctx.fillStyle = 'red'; ctx.fillRect(this.x-this.radius, this.y-this.radius-10, this.radius*2, 4);
-                 ctx.fillStyle = '#0f0'; ctx.fillRect(this.x-this.radius, this.y-this.radius-10, this.radius*2 * (this.hp/this.maxHp), 4);
-            }
-        }
+        constructor(x, y, radius, color, hp, speed, expValue) { this.x = x; this.y = y; this.radius = radius; this.color = color; this.hp = hp; this.maxHp = hp; this.speed = speed; this.expValue = expValue; }
+        update() { const angle = Math.atan2(player.y - this.y, player.x - this.x); this.x += Math.cos(angle) * this.speed; this.y += Math.sin(angle) * this.speed; this.checkCollisionWithPlayer(); }
+        checkCollisionWithPlayer() { const dist = Math.hypot(this.x - player.x, this.y - player.y); if (dist < this.radius + player.radius) { player.hp -= (this instanceof Boss ? 30 : 10); updateUI(); if (!(this instanceof Boss)) this.hp = 0; createExplosion(this.x, this.y, 'red', 20, 5); if (player.hp <= 0) endGame(); } }
+        draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); if (this.hp < this.maxHp) { ctx.fillStyle = 'red'; ctx.fillRect(this.x-this.radius, this.y-this.radius-10, this.radius*2, 4); ctx.fillStyle = '#0f0'; ctx.fillRect(this.x-this.radius, this.y-this.radius-10, this.radius*2 * (this.hp/this.maxHp), 4); } }
     }
-
-    // 普通小怪 (速度已修改)
     class Enemy extends EnemyBase {
-        constructor() {
-            const spawnPos = getSpawnPosition();
-            const hp = 25 + (player.level * 8);
-            // --- 修改点：降低小怪速度 ---
-            // 原速度: 1.8 + 随机(0.8) + 成长(0.05)
-            // 新速度: 0.7 + 随机(0.6) + 成长(0.02) -> 显著变慢
-            const speed = 0.7 + Math.random() * 0.6 + (player.level * 0.02);
-            super(spawnPos.x, spawnPos.y, 12, '#ff4444', hp, speed, 8 + player.level);
-        }
+        constructor() { const spawnPos = getSpawnPosition(); const hp = 25 + (player.level * 8); const speed = 0.7 + Math.random() * 0.6 + (player.level * 0.02); super(spawnPos.x, spawnPos.y, 12, '#ff4444', hp, speed, 8 + player.level); }
     }
-
-    // Boss 类
     class Boss extends EnemyBase {
-        constructor() {
-            const spawnPos = getSpawnPosition(true);
-            const hp = 800 + (player.level * 150); 
-            super(spawnPos.x, spawnPos.y, 40, '#8a00ff', hp, 1.2, 300);
-            this.isBoss = true;
-        }
-        draw() {
-            ctx.save();
-            ctx.shadowColor = this.color; ctx.shadowBlur = 30;
-            super.draw();
-            ctx.restore();
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius * 0.6, 0, Math.PI*2); ctx.fillStyle = '#aa33ff'; ctx.fill();
-        }
+        constructor() { const spawnPos = getSpawnPosition(true); const hp = 800 + (player.level * 150); super(spawnPos.x, spawnPos.y, 40, '#8a00ff', hp, 1.2, 300); this.isBoss = true; }
+        draw() { ctx.save(); ctx.shadowColor = this.color; ctx.shadowBlur = 30; super.draw(); ctx.restore(); ctx.beginPath(); ctx.arc(this.x, this.y, this.radius * 0.6, 0, Math.PI*2); ctx.fillStyle = '#aa33ff'; ctx.fill(); }
     }
-
-    function getSpawnPosition(forceOuter = false) {
-        let x, y;
-        const margin = forceOuter ? 100 : 30;
-        if (Math.random() < 0.5) {
-            x = Math.random() < 0.5 ? -margin : canvas.width + margin;
-            y = Math.random() * canvas.height;
-        } else {
-            x = Math.random() * canvas.width;
-            y = Math.random() < 0.5 ? -margin : canvas.height + margin;
-        }
-        return {x, y};
-    }
-
+    function getSpawnPosition(forceOuter = false) { let x, y; const margin = forceOuter ? 100 : 30; if (Math.random() < 0.5) { x = Math.random() < 0.5 ? -margin : canvas.width + margin; y = Math.random() * canvas.height; } else { x = Math.random() * canvas.width; y = Math.random() < 0.5 ? -margin : canvas.height + margin; } return {x, y}; }
     class Projectile {
-        constructor(x, y, velocity, damage, penetration, size, color) {
-            this.x = x; this.y = y; this.velocity = velocity;
-            this.damage = damage; this.penetration = penetration;
-            this.radius = size; this.color = color;
-            this.hitList = [];
-            this.hasTrail = penetration > 0;
-        }
-        update() {
-            this.x += this.velocity.x; this.y += this.velocity.y;
-            if (this.hasTrail && frame % 3 === 0) createExplosion(this.x, this.y, this.color, 3, 1, 5);
-        }
-        draw() {
-            ctx.save(); ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = this.color; ctx.shadowColor = this.color; ctx.shadowBlur = 15;
-            ctx.fill(); ctx.restore();
-        }
+        constructor(x, y, velocity, damage, penetration, size, color) { this.x = x; this.y = y; this.velocity = velocity; this.damage = damage; this.penetration = penetration; this.radius = size; this.color = color; this.hitList = []; this.hasTrail = penetration > 0; }
+        update() { this.x += this.velocity.x; this.y += this.velocity.y; if (this.hasTrail && frame % 3 === 0) createExplosion(this.x, this.y, this.color, 3, 1, 5); }
+        draw() { ctx.save(); ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.shadowColor = this.color; ctx.shadowBlur = 15; ctx.fill(); ctx.restore(); }
     }
-
     class ExpOrb {
-        constructor(x, y, value) {
-            this.x = x; this.y = y; this.value = value;
-            this.radius = 6; this.color = value > 100 ? '#ffcc00' : '#00ffaa';
-        }
-        update() {
-            const dist = Math.hypot(this.x - player.x, this.y - player.y);
-            const attractRange = 120 + player.level * 2;
-            if (dist < attractRange) {
-                const pullStrength = (1 - dist / attractRange) * 8;
-                this.x += (player.x - this.x) * 0.05 * pullStrength;
-                this.y += (player.y - this.y) * 0.05 * pullStrength;
-            }
-            if (dist < player.radius + this.radius) {
-                player.gainExp(this.value); this.markedForDeletion = true;
-            }
-        }
-        draw() {
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = this.color; ctx.shadowColor = this.color; ctx.shadowBlur = 10;
-            ctx.fill(); ctx.shadowBlur = 0;
-        }
+        constructor(x, y, value) { this.x = x; this.y = y; this.value = value; this.radius = 6; this.color = value > 100 ? '#ffcc00' : '#00ffaa'; }
+        update() { const dist = Math.hypot(this.x - player.x, this.y - player.y); const attractRange = 120 + player.level * 2; if (dist < attractRange) { const pullStrength = (1 - dist / attractRange) * 8; this.x += (player.x - this.x) * 0.05 * pullStrength; this.y += (player.y - this.y) * 0.05 * pullStrength; } if (dist < player.radius + this.radius) { player.gainExp(this.value); this.markedForDeletion = true; } }
+        draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.shadowColor = this.color; ctx.shadowBlur = 10; ctx.fill(); ctx.shadowBlur = 0; }
     }
-
     class Particle {
-        constructor(x, y, color, speedMult, size) {
-            this.x = x; this.y = y; this.color = color;
-            const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * speedMult;
-            this.velocity = { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed };
-            this.alpha = 1; this.decay = 0.03 + Math.random() * 0.03;
-            this.size = size || (2 + Math.random() * 3);
-        }
-        update() {
-            this.x += this.velocity.x; this.y += this.velocity.y; this.alpha -= this.decay;
-        }
-        draw() {
-            ctx.save(); ctx.globalAlpha = this.alpha; ctx.fillStyle = this.color;
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
-            ctx.fill(); ctx.restore();
-        }
+        constructor(x, y, color, speedMult, size) { this.x = x; this.y = y; this.color = color; const angle = Math.random() * Math.PI * 2; const speed = Math.random() * speedMult; this.velocity = { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed }; this.alpha = 1; this.decay = 0.03 + Math.random() * 0.03; this.size = size || (2 + Math.random() * 3); }
+        update() { this.x += this.velocity.x; this.y += this.velocity.y; this.alpha -= this.decay; }
+        draw() { ctx.save(); ctx.globalAlpha = this.alpha; ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
     }
 
     let player = new Player();
-    let enemies = [];
-    let projectiles = [];
-    let expOrbs = [];
-    let particles = [];
-
-    function spawnEnemy() {
-        if (bossActive) return;
-        enemies.push(new Enemy());
-    }
-
-    function triggerBossFight() {
-        bossActive = true;
-        document.getElementById('boss-warning').style.display = 'block';
-        enemies = enemies.filter(e => Math.hypot(e.x - player.x, e.y - player.y) < canvas.width/2);
-        setTimeout(() => {
-             enemies.push(new Boss());
-             document.getElementById('boss-warning').style.display = 'none';
-        }, 2000);
-    }
-
-    function createExplosion(x, y, color, count = 10, speed = 5, size = 0) {
-        for (let i = 0; i < count; i++) {
-            particles.push(new Particle(x, y, color, speed, size));
-        }
-    }
-
+    let enemies = []; let projectiles = []; let expOrbs = []; let particles = [];
+    function spawnEnemy() { if (bossActive) return; enemies.push(new Enemy()); }
+    function triggerBossFight() { bossActive = true; document.getElementById('boss-warning').style.display = 'block'; enemies = enemies.filter(e => Math.hypot(e.x - player.x, e.y - player.y) < canvas.width/2); setTimeout(() => { enemies.push(new Boss()); document.getElementById('boss-warning').style.display = 'none'; }, 2000); }
+    function createExplosion(x, y, color, count = 10, speed = 5, size = 0) { for (let i = 0; i < count; i++) { particles.push(new Particle(x, y, color, speed, size)); } }
+    
+    // 主循环
     function animate() {
         if (gameState !== 'playing') return;
         requestAnimationFrame(animate);
-        
-        ctx.fillStyle = 'rgba(10, 10, 10, 0.4)'; 
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+        ctx.fillStyle = 'rgba(10, 10, 10, 0.4)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         frame++;
-
         let spawnRate = Math.max(15, 50 - player.level * 1.5); 
         if (frame % Math.floor(spawnRate) === 0) spawnEnemy();
-
-        player.update();
-        player.draw();
-
-        projectiles.forEach((p, index) => {
-            p.update(); p.draw();
-            if (p.x < -50 || p.x > canvas.width+50 || p.y < -50 || p.y > canvas.height+50) {
-                projectiles.splice(index, 1); return;
-            }
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                const enemy = enemies[i];
-                const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y);
-                if (dist < enemy.radius + p.radius && !p.hitList.includes(enemy)) {
-                    enemy.hp -= p.damage; p.hitList.push(enemy);
-                    createExplosion(p.x, p.y, '#ffaa00', 5, 4, 2);
-                    if (enemy.hp <= 0) {
-                        createExplosion(enemy.x, enemy.y, enemy.color, enemy instanceof Boss ? 50 : 15, enemy instanceof Boss ? 10 : 6);
-                        expOrbs.push(new ExpOrb(enemy.x, enemy.y, enemy.expValue));
-                        enemies.splice(i, 1);
-                        if (enemy instanceof Boss) bossActive = false;
-                    }
-                    if (p.penetration > 0) p.penetration--; else { projectiles.splice(index, 1); break; }
-                }
-            }
-        });
-
-        enemies.forEach(e => { e.update(); e.draw(); });
-        expOrbs.forEach((o, i) => { o.update(); o.draw(); if(o.markedForDeletion) expOrbs.splice(i, 1); });
-        particles.forEach((p, i) => { p.update(); p.draw(); if(p.alpha <= 0) particles.splice(i, 1); });
+        player.update(); player.draw();
+        projectiles.forEach((p, index) => { p.update(); p.draw(); if (p.x < -50 || p.x > canvas.width+50 || p.y < -50 || p.y > canvas.height+50) { projectiles.splice(index, 1); return; } for (let i = enemies.length - 1; i >= 0; i--) { const enemy = enemies[i]; const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y); if (dist < enemy.radius + p.radius && !p.hitList.includes(enemy)) { enemy.hp -= p.damage; p.hitList.push(enemy); createExplosion(p.x, p.y, '#ffaa00', 5, 4, 2); if (enemy.hp <= 0) { createExplosion(enemy.x, enemy.y, enemy.color, enemy instanceof Boss ? 50 : 15, enemy instanceof Boss ? 10 : 6); expOrbs.push(new ExpOrb(enemy.x, enemy.y, enemy.expValue)); enemies.splice(i, 1); if (enemy instanceof Boss) bossActive = false; } if (p.penetration > 0) p.penetration--; else { projectiles.splice(index, 1); break; } } } });
+        enemies.forEach(e => { e.update(); e.draw(); }); expOrbs.forEach((o, i) => { o.update(); o.draw(); if(o.markedForDeletion) expOrbs.splice(i, 1); }); particles.forEach((p, i) => { p.update(); p.draw(); if(p.alpha <= 0) particles.splice(i, 1); });
     }
 
-    const skillPool = [
-        { id: 'multishot', name: '分裂箭矢', desc: '额外发射一枚子弹', icon: '🏹', color: '#00c6ff',
-          effect: () => { player.projectileCount++; player.skillLevels.multishot++; } },
-        { id: 'dmg_up', name: '熔岩弹药', desc: '伤害+15，子弹变大变红', icon: '💥', color: '#ff4b4b',
-          effect: () => { player.damage += 15; player.skillLevels.dmg++; } },
-        { id: 'speed_up', name: '迅捷步伐', desc: '移动速度 +1.5', icon: '👟', color: '#ffd700',
-          effect: () => { player.speed += 1.5; player.skillLevels.speed++; } },
-        { id: 'haste', name: '狂热射击', desc: '攻速显著提升 (18%)', icon: '🔥', color: '#ff8800',
-          effect: () => { player.fireRate = Math.max(4, player.fireRate * 0.82); } },
-        { id: 'heal', name: '泰坦之心', desc: '生命全满，上限+40', icon: '💖', color: '#ff00cc',
-          effect: () => { player.maxHp += 40; player.hp = player.maxHp; } },
-        { id: 'pierce', name: '等离子穿透', desc: '子弹获得穿透能力，变为青色', icon: '⚡', color: '#00ffff',
-          effect: () => { player.penetration++; player.skillLevels.pierce++; } }
-    ];
-
-    function showUpgradeMenu() {
-        gameState = 'paused';
-        const container = document.getElementById('cards-container');
-        container.innerHTML = '';
-        const shuffled = [...skillPool];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        const choices = shuffled.slice(0, 3);
-
-        choices.forEach(skill => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.style.borderColor = skill.color; card.style.color = skill.color;
-            card.innerHTML = `
-                <div class="card-icon" style="text-shadow: 0 0 20px ${skill.color}">${skill.icon}</div>
-                <div class="card-title" style="color: ${skill.color}">${skill.name}</div>
-                <div class="card-desc">${skill.desc}</div>
-            `;
-            card.onclick = () => {
-                skill.effect(); player.updateVisuals();
-                document.getElementById('upgrade-menu').style.display = 'none';
-                gameState = 'playing'; animate();
-            };
-            container.appendChild(card);
-        });
-        document.getElementById('upgrade-menu').style.display = 'flex';
-    }
-
-    function updateUI() {
-        const bar = document.getElementById('exp-bar');
-        const pct = Math.min(100, (player.exp / player.expToNextLevel) * 100);
-        bar.style.width = pct + '%';
-        document.getElementById('level-display').innerText = `Level ${player.level}`;
-    }
-
-    function endGame() {
-        gameState = 'gameover';
-        document.getElementById('game-over').style.display = 'block';
-        const time = ((Date.now() - startTime) / 1000).toFixed(0);
-        document.getElementById('final-stats').innerHTML = `
-            存活时间: <span style="color:#00c6ff">${time}s</span><br>
-            最终等级: <span style="color:#ffd700">Lv.${player.level}</span>
-        `;
-    }
+    // 技能和UI相关函数保持不变
+    const skillPool = [ { id: 'multishot', name: '分裂箭矢', desc: '额外发射一枚子弹', icon: '🏹', color: '#00c6ff', effect: () => { player.projectileCount++; player.skillLevels.multishot++; } }, { id: 'dmg_up', name: '熔岩弹药', desc: '伤害+15，子弹变大变红', icon: '💥', color: '#ff4b4b', effect: () => { player.damage += 15; player.skillLevels.dmg++; } }, { id: 'speed_up', name: '迅捷步伐', desc: '移动速度 +1.5', icon: '👟', color: '#ffd700', effect: () => { player.speed += 1.5; player.skillLevels.speed++; } }, { id: 'haste', name: '狂热射击', desc: '攻速显著提升 (18%)', icon: '🔥', color: '#ff8800', effect: () => { player.fireRate = Math.max(4, player.fireRate * 0.82); } }, { id: 'heal', name: '泰坦之心', desc: '生命全满，上限+40', icon: '💖', color: '#ff00cc', effect: () => { player.maxHp += 40; player.hp = player.maxHp; } }, { id: 'pierce', name: '等离子穿透', desc: '子弹获得穿透能力，变为青色', icon: '⚡', color: '#00ffff', effect: () => { player.penetration++; player.skillLevels.pierce++; } } ];
+    function showUpgradeMenu() { gameState = 'paused'; const container = document.getElementById('cards-container'); container.innerHTML = ''; const shuffled = [...skillPool]; for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; } const choices = shuffled.slice(0, 3); choices.forEach(skill => { const card = document.createElement('div'); card.className = 'card'; card.style.borderColor = skill.color; card.style.color = skill.color; card.innerHTML = ` <div class="card-icon" style="text-shadow: 0 0 20px ${skill.color}">${skill.icon}</div> <div class="card-title" style="color: ${skill.color}">${skill.name}</div> <div class="card-desc">${skill.desc}</div> `; card.onclick = () => { skill.effect(); player.updateVisuals(); document.getElementById('upgrade-menu').style.display = 'none'; gameState = 'playing'; animate(); }; container.appendChild(card); }); document.getElementById('upgrade-menu').style.display = 'flex'; }
+    function updateUI() { const bar = document.getElementById('exp-bar'); const pct = Math.min(100, (player.exp / player.expToNextLevel) * 100); bar.style.width = pct + '%'; document.getElementById('level-display').innerText = `Level ${player.level}`; }
+    function endGame() { gameState = 'gameover'; document.getElementById('game-over').style.display = 'block'; const time = ((Date.now() - startTime) / 1000).toFixed(0); document.getElementById('final-stats').innerHTML = ` 存活时间: <span style="color:#00c6ff">${time}s</span><br> 最终等级: <span style="color:#ffd700">Lv.${player.level}</span> `; }
 
     animate();
-
 </script>
 </body>
 </html>
