@@ -2,661 +2,649 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Neon Survivor v5.0 - AWAKENING</title>
+    <title>Neon Survivor v6.0 - Ultimate</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --neon-blue: #00f3ff;
-            --neon-pink: #ff00ff;
-            --neon-gold: #ffd700;
-            --neon-red: #ff3333;
-            --bg-color: #050505;
+            --primary: #00f3ff;
+            --secondary: #ff00ff;
+            --accent: #ffcc00;
+            --danger: #ff3333;
+            --bg: #0a0a0c;
         }
         body {
-            margin: 0; overflow: hidden; background-color: var(--bg-color);
+            margin: 0; overflow: hidden; background-color: var(--bg);
             font-family: 'Rajdhani', sans-serif; color: white; user-select: none;
         }
         canvas { display: block; }
 
-        /* UI 通用 */
+        /* --- UI 遮罩层 (通用) --- */
         .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            background: rgba(5, 5, 8, 0.92);
-            backdrop-filter: blur(12px);
-            z-index: 100; transition: opacity 0.3s;
+            background: rgba(10, 10, 12, 0.85);
+            backdrop-filter: blur(8px); /* 毛玻璃核心 */
+            z-index: 100; opacity: 1; transition: opacity 0.3s;
+            pointer-events: auto;
         }
-        .hidden { opacity: 0; pointer-events: none; }
-        
-        h1 {
-            font-family: 'Orbitron', sans-serif; font-size: 80px; margin: 0;
-            background: linear-gradient(to right, var(--neon-blue), var(--neon-pink));
-            -webkit-background-clip: text; color: transparent;
-            text-shadow: 0 0 30px rgba(0, 243, 255, 0.4);
-            letter-spacing: 5px;
-        }
-        
-        /* 觉醒特效文字 */
-        .awakened-text {
-            color: var(--neon-gold) !important;
-            text-shadow: 0 0 20px var(--neon-gold), 0 0 40px red !important;
-            animation: pulse-gold 0.5s infinite alternate;
-        }
-        @keyframes pulse-gold { from { transform: scale(1); } to { transform: scale(1.1); } }
+        .hidden { opacity: 0; pointer-events: none; z-index: -1; }
 
+        /* 标题样式 */
+        h1 {
+            font-family: 'Orbitron', sans-serif; font-size: 72px; margin: 0;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text; color: transparent;
+            text-shadow: 0 0 30px rgba(0, 243, 255, 0.3); letter-spacing: 4px;
+        }
+        h2 { font-family: 'Orbitron'; color: white; text-shadow: 0 0 10px white; margin-bottom: 30px; font-size: 36px; }
+
+        /* 按钮样式 */
         button {
-            background: transparent; color: white; border: 2px solid var(--neon-blue);
-            padding: 15px 50px; font-family: 'Orbitron'; font-size: 24px; font-weight: bold;
-            margin-top: 30px; cursor: pointer; transition: 0.2s;
-            box-shadow: 0 0 15px var(--neon-blue); text-transform: uppercase;
-            clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+            background: linear-gradient(135deg, rgba(0, 243, 255, 0.2), rgba(0,0,0,0));
+            border: 2px solid var(--primary); color: white;
+            padding: 15px 60px; font-family: 'Orbitron'; font-size: 20px; font-weight: bold;
+            margin-top: 40px; cursor: pointer; border-radius: 4px;
+            box-shadow: 0 0 15px var(--primary); transition: 0.2s;
+            text-transform: uppercase;
         }
         button:hover {
-            background: var(--neon-blue); color: black; box-shadow: 0 0 40px var(--neon-blue);
-            transform: scale(1.05);
+            background: var(--primary); color: black;
+            box-shadow: 0 0 40px var(--primary); transform: scale(1.05);
         }
 
-        /* HUD */
-        #hud-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        .exp-bar-box {
-            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-            width: 50%; height: 20px; background: #111; border: 1px solid #444;
-            transform: skewX(-20deg);
+        /* --- 游戏内 HUD --- */
+        #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        
+        /* 经验条 */
+        .exp-container {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            width: 400px; height: 24px; background: rgba(0,0,0,0.8);
+            border: 1px solid #444; border-radius: 12px; overflow: hidden;
+            box-shadow: 0 0 10px black;
         }
         .exp-fill {
-            height: 100%; width: 0%; background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink));
-            box-shadow: 0 0 15px var(--neon-blue); transition: width 0.2s;
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            box-shadow: 0 0 10px var(--primary); transition: width 0.2s;
         }
-        .stat-display {
-            position: absolute; top: 40px; left: 20px;
-            font-family: 'Orbitron'; font-size: 14px; color: #888;
+        .level-badge {
+            position: absolute; top: 50px; left: 50%; transform: translateX(-50%);
+            font-family: 'Orbitron'; font-weight: 900; font-size: 24px;
+            color: var(--accent); text-shadow: 0 0 10px var(--accent);
         }
-        .timer-display {
+        
+        /* 状态栏 */
+        .stats-panel {
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px;
+            border-left: 4px solid var(--danger); font-family: 'Orbitron';
+        }
+        .timer-panel {
             position: absolute; top: 20px; right: 20px;
-            font-family: 'Orbitron'; font-size: 32px; color: white;
+            font-size: 32px; font-family: 'Orbitron'; text-shadow: 0 0 10px white;
         }
 
-        /* 升级卡片系统 */
-        .cards-wrapper { display: flex; gap: 20px; margin-top: 20px; }
+        /* --- 升级卡片容器 --- */
+        .cards-container { display: flex; gap: 25px; flex-wrap: wrap; justify-content: center; }
         .card {
             width: 200px; height: 300px;
-            background: linear-gradient(160deg, #15151a, #0a0a0c);
-            border: 1px solid #444; border-top: 4px solid var(--c);
-            border-radius: 8px; padding: 15px; cursor: pointer;
+            background: linear-gradient(160deg, #1a1a20, #0d0d10);
+            border: 1px solid #555; border-top: 4px solid var(--color);
+            border-radius: 12px; padding: 20px; cursor: pointer;
             display: flex; flex-direction: column; align-items: center; text-align: center;
             transition: 0.3s; position: relative; overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-        .card:hover { transform: translateY(-15px) scale(1.02); border-color: var(--c); box-shadow: 0 0 30px var(--c); }
-        .card-icon { font-size: 50px; margin: 20px 0; filter: drop-shadow(0 0 10px var(--c)); }
-        .card h3 { color: var(--c); margin: 0 0 5px 0; font-family: 'Orbitron'; font-size: 18px; }
-        .card .lvl-badge { 
-            background: #222; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-bottom: 10px; 
-            border: 1px solid #444; color: #aaa;
+        .card:hover {
+            transform: translateY(-15px) scale(1.03);
+            border-color: var(--color); box-shadow: 0 0 30px var(--color);
         }
-        .card.is-awakening {
-            background: linear-gradient(160deg, #330000, #110000);
-            border-color: var(--neon-gold);
-            animation: border-pulse 1s infinite alternate;
-        }
-        .card.is-awakening h3 { color: var(--neon-gold); }
-        .card.is-awakening .lvl-badge { background: var(--neon-gold); color: black; font-weight: bold; }
+        .card-icon { font-size: 50px; margin: 20px 0; filter: drop-shadow(0 0 10px var(--color)); }
+        .card h3 { color: var(--color); margin: 0 0 10px 0; font-family: 'Orbitron'; font-size: 18px; }
+        .card p { color: #aaa; font-size: 13px; line-height: 1.4; }
         
-        @keyframes border-pulse { from { box-shadow: 0 0 10px var(--neon-gold); } to { box-shadow: 0 0 30px var(--neon-gold), 0 0 10px red; } }
+        /* 觉醒卡片特效 */
+        .card.awakened {
+            background: linear-gradient(160deg, #300, #100);
+            border-color: var(--accent);
+            animation: pulse-gold 1.5s infinite alternate;
+        }
+        .card.awakened h3 { color: var(--accent); text-shadow: 0 0 10px red; }
+        @keyframes pulse-gold { from { box-shadow: 0 0 10px var(--accent); } to { box-shadow: 0 0 40px var(--accent); } }
 
-        /* 觉醒提示横幅 */
-        #awakening-banner {
-            position: absolute; top: 30%; width: 100%; text-align: center;
-            font-family: 'Orbitron'; font-size: 60px; font-weight: 900;
-            color: var(--neon-gold); text-shadow: 0 0 50px red;
-            pointer-events: none; opacity: 0; transform: scale(2);
-            transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        /* 觉醒横幅 */
+        #awakening-msg {
+            position: absolute; top: 35%; width: 100%; text-align: center;
+            font-family: 'Orbitron'; font-size: 80px; font-weight: 900;
+            background: linear-gradient(to bottom, #fff, #ffcc00);
+            -webkit-background-clip: text; color: transparent;
+            text-shadow: 0 0 50px red; pointer-events: none;
+            transform: scale(0); transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 200;
         }
-        #awakening-banner.show { opacity: 1; transform: scale(1); }
-        
+        #awakening-msg.show { transform: scale(1); }
     </style>
 </head>
 <body>
 
     <canvas id="gameCanvas"></canvas>
-    
-    <div id="awakening-banner">ULTIMATE AWAKENED!</div>
-
-    <div id="upgrade-screen" class="overlay hidden">
-        <h2 style="font-family:'Orbitron'; font-size:40px; color:white;">SYSTEM UPGRADE</h2>
-        <div class="cards-wrapper" id="cards-container"></div>
-        <button onclick="reroll()" style="margin-top:40px; font-size:16px; padding:10px 30px; border-color:#666; color:#aaa;">REROLL</button>
-    </div>
+    <div id="awakening-msg">ULTIMATE AWAKENED!</div>
 
     <div id="start-screen" class="overlay">
         <h1>NEON SURVIVOR</h1>
-        <div style="color:var(--neon-gold); margin-bottom: 20px; font-family: 'Orbitron';">v5.0 AWAKENING UPDATE</div>
-        <button onclick="startGame()">INITIATE</button>
+        <div style="color:#888; letter-spacing: 2px; margin-bottom: 40px; font-family:'Orbitron'">SYSTEM v6.0 ONLINE</div>
+        <button onclick="startGame()">START MISSION</button>
+        <p style="color:#555; margin-top: 20px;">[WASD] Move &nbsp;|&nbsp; Survive & Evolve</p>
     </div>
 
-    <div id="hud-layer" class="hidden">
-        <div class="exp-bar-box"><div class="exp-fill" id="exp-bar"></div></div>
-        <div class="timer-display" id="timer">00:00</div>
-        <div class="stat-display" id="stats-debug"></div>
+    <div id="hud" class="hidden">
+        <div class="exp-container"><div class="exp-fill" id="exp-bar"></div></div>
+        <div class="level-badge">LV <span id="lvl-text">1</span></div>
+        <div class="stats-panel">
+            <div style="color:var(--danger); font-size:20px;">HP: <span id="hp-text">100</span>%</div>
+            <div style="color:#aaa; font-size:14px; margin-top:5px;">KILLS: <span id="kill-text">0</span></div>
+        </div>
+        <div class="timer-panel" id="timer-text">00:00</div>
+    </div>
+
+    <div id="upgrade-menu" class="overlay hidden">
+        <h2>CHOOSE UPGRADE</h2>
+        <div class="cards-container" id="cards-box"></div>
     </div>
 
     <div id="game-over" class="overlay hidden">
-        <h1 style="color:var(--neon-red);">TERMINATED</h1>
-        <p id="final-score" style="font-size:24px; color:#ccc;">...</p>
-        <button onclick="location.reload()">REBOOT</button>
+        <h1 style="color:var(--danger);">MISSION FAILED</h1>
+        <p id="end-stats" style="color:#ccc; font-size:24px; margin:20px 0;">...</p>
+        <button onclick="location.reload()">RETRY</button>
     </div>
 
 <script>
+    // --- 游戏引擎配置 ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    // 全局配色
-    const C = {
+    // 视觉常量
+    const Colors = {
+        player: '#fff',
         bullet: '#00f3ff',
-        bullet_god: '#ffd700', // 觉醒子弹颜色
+        bullet_god: '#ffd700', // 觉醒金色
         enemy: '#ff0055',
         exp: '#00ff66',
-        blackhole: '#a020f0',
-        blackhole_god: '#ff0000', // 觉醒黑洞
-        shield: '#00ccff',
-        shield_god: '#ffaa00'
+        orb: '#00ccff',
+        orb_god: '#ffaa00',    // 觉醒橙色
+        bg_grid: '#1a1a1a'
     };
 
-    let state = 'start'; // start, running, upgrade, gameover
+    let gameState = 'start'; // start, running, paused, upgrade, gameover
     let frame = 0;
-    let bgOffset = {x:0, y:0};
+    let bgOffset = {x: 0, y: 0};
     
     function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', resize); resize();
 
-    // --- 玩家类 ---
+    // --- 游戏状态数据 ---
+    let player = {};
+    let enemies = [];
+    let bullets = [];
+    let particles = [];
+    let exps = [];
+    let texts = []; // 飘字
+    let keys = {};
+
+    // --- 技能定义 (Database) ---
+    // maxLvl: 5 (Lv5 = 觉醒)
+    const SKILLS = [
+        { 
+            id: 'shot', name: 'Plasma Gun', icon: '🔫', color: '#00f3ff',
+            desc: 'Fires energy bolts at enemies.',
+            godName: 'GOD SLAYER', godDesc: 'Golden beams obliterate everything.',
+            type: 'active'
+        },
+        { 
+            id: 'guardian', name: 'Ion Shield', icon: '🛡️', color: '#00ccff',
+            desc: 'Rotating orbs damage enemies.',
+            godName: 'ION STORM', godDesc: 'A storm of destruction surrounds you.',
+            type: 'active'
+        },
+        { 
+            id: 'speed', name: 'Thrusters', icon: '⚡', color: '#ffff00',
+            desc: 'Movement Speed +10%',
+            type: 'passive'
+        },
+        { 
+            id: 'vitality', name: 'Nano Armor', icon: '❤️', color: '#ff3333',
+            desc: 'Max HP +20 & Heal',
+            type: 'passive'
+        },
+        { 
+            id: 'haste', name: 'Overclock', icon: '⏩', color: '#ffaa00',
+            desc: 'Fire Rate +15%',
+            type: 'passive'
+        }
+    ];
+
+    // --- 核心类 ---
+
     class Player {
         constructor() {
-            this.x = canvas.width/2; this.y = canvas.height/2;
+            this.x = canvas.width / 2;
+            this.y = canvas.height / 2;
             this.hp = 100; this.maxHp = 100;
+            this.speed = 4;
             this.level = 1; this.exp = 0; this.nextExp = 15;
             this.kills = 0;
-            this.speed = 4;
             
-            // 技能等级追踪
-            this.levels = {
-                shot: 1,      // 基础射击
-                guardian: 0,  // 护盾
-                blackhole: 0, // 黑洞
-                mines: 0      // 地雷
-            };
-
-            // 觉醒状态 (Lv 5)
-            this.awakened = {
-                shot: false,
-                guardian: false,
-                blackhole: false,
-                mines: false
+            // 技能等级数据
+            this.skillLevels = {
+                shot: 1,      // 默认拥有
+                guardian: 0,
+                speed: 0,
+                vitality: 0,
+                haste: 0
             };
             
-            this.timers = { shot: 0, guardian: 0, blackhole: 0, mine: 0 };
+            // 冷却计时器
+            this.cooldowns = { shot: 0 };
             this.guardianAngle = 0;
         }
 
         update() {
-            // 移动
-            let dx=0, dy=0;
-            if(keys['w']) dy-=1; if(keys['s']) dy+=1;
-            if(keys['a']) dx-=1; if(keys['d']) dx+=1;
-            if(dx||dy) {
-                const l = Math.hypot(dx, dy);
-                this.x += (dx/l)*this.speed; this.y += (dy/l)*this.speed;
-                bgOffset.x -= (dx/l)*this.speed*0.5; bgOffset.y -= (dy/l)*this.speed*0.5;
+            // 1. 移动
+            let dx = 0, dy = 0;
+            if (keys['w'] || keys['ArrowUp']) dy -= 1;
+            if (keys['s'] || keys['ArrowDown']) dy += 1;
+            if (keys['a'] || keys['ArrowLeft']) dx -= 1;
+            if (keys['d'] || keys['ArrowRight']) dx += 1;
+
+            let currentSpeed = this.speed + (this.skillLevels.speed * 0.5);
+            
+            if (dx || dy) {
+                const len = Math.hypot(dx, dy);
+                this.x += (dx/len) * currentSpeed;
+                this.y += (dy/len) * currentSpeed;
+                // 背景视差移动
+                bgOffset.x -= (dx/len) * currentSpeed * 0.5;
+                bgOffset.y -= (dy/len) * currentSpeed * 0.5;
             }
+            
+            // 边界
             this.x = Math.max(20, Math.min(canvas.width-20, this.x));
             this.y = Math.max(20, Math.min(canvas.height-20, this.y));
 
-            // --- 技能逻辑 ---
-
-            // 1. 射击 (Multishot)
-            // 觉醒: "GOD SLAYER" - 射速极快，穿透，红色激光
-            if(this.timers.shot > 0) this.timers.shot--;
+            // 2. 射击逻辑
+            if (this.cooldowns.shot > 0) this.cooldowns.shot--;
             else {
-                const target = findNearest(this.x, this.y);
-                if(target) {
-                    const isGod = this.awakened.shot;
-                    const count = this.levels.shot + (isGod ? 4 : 0); // 觉醒+4发
-                    const dmg = 15 + this.levels.shot * 5 + (isGod ? 30 : 0);
-                    const spread = isGod ? 0.4 : 0.2;
+                const target = findNearestEnemy(this.x, this.y);
+                if (target) {
+                    const lvl = this.skillLevels.shot;
+                    const isGod = lvl >= 5; // 觉醒判定
                     
-                    const angle = Math.atan2(target.y - this.y, target.x - this.x);
-                    const startA = angle - (spread * (count-1))/2;
+                    // 射击参数
+                    const dmg = 15 + lvl * 5 + (isGod ? 50 : 0);
+                    const count = 1 + Math.floor(lvl / 2) + (isGod ? 2 : 0); // 1, 1, 2, 2, 5
+                    const spread = 0.2 + (isGod ? 0.2 : 0);
+                    
+                    const baseAngle = Math.atan2(target.y - this.y, target.x - this.x);
+                    const startAngle = baseAngle - (spread * (count-1))/2;
                     
                     for(let i=0; i<count; i++) {
-                        const a = startA + i * spread;
-                        bullets.push(new Bullet(this.x, this.y, Math.cos(a)*12, Math.sin(a)*12, dmg, isGod));
+                        const a = startAngle + i*spread;
+                        bullets.push(new Bullet(this.x, this.y, Math.cos(a)*10, Math.sin(a)*10, dmg, isGod));
                     }
-                    this.timers.shot = isGod ? 15 : Math.max(5, 35 - this.levels.shot * 2);
-                    // 觉醒射击特效
-                    if(isGod) spawnParticles(this.x, this.y, C.bullet_god, 5);
+                    
+                    // 攻速计算 (Haste 被动)
+                    let fireDelay = Math.max(5, 30 - this.skillLevels.haste * 3 - (isGod ? 10 : 0));
+                    this.cooldowns.shot = fireDelay;
+                    
+                    if (isGod) spawnParticles(this.x, this.y, Colors.bullet_god, 5);
                 }
             }
 
-            // 2. 护盾 (Guardian)
-            // 觉醒: "ION STORM" - 数量翻倍，转速极快，范围变大
-            if(this.levels.guardian > 0) {
-                const isGod = this.awakened.guardian;
-                const orbCount = this.levels.guardian + (isGod ? 5 : 0);
-                const speed = isGod ? 0.15 : 0.05;
-                const dist = isGod ? 120 : 80;
+            // 3. 护盾逻辑
+            if (this.skillLevels.guardian > 0) {
+                const lvl = this.skillLevels.guardian;
+                const isGod = lvl >= 5;
                 
-                this.guardianAngle += speed;
-                for(let i=0; i<orbCount; i++) {
-                    const a = this.guardianAngle + (Math.PI*2/orbCount)*i;
-                    const gx = this.x + Math.cos(a)*dist;
-                    const gy = this.y + Math.sin(a)*dist;
+                const count = lvl + (isGod ? 4 : 0);
+                const rotSpeed = 0.05 + (isGod ? 0.1 : 0);
+                const dist = 80 + (isGod ? 40 : 0);
+                
+                this.guardianAngle += rotSpeed;
+                
+                for(let i=0; i<count; i++) {
+                    const a = this.guardianAngle + (Math.PI*2/count) * i;
+                    const ox = this.x + Math.cos(a) * dist;
+                    const oy = this.y + Math.sin(a) * dist;
                     
-                    // 伤害逻辑 (简化，直接遍历敌人)
+                    // 护盾伤害
                     enemies.forEach(e => {
-                        if(Math.hypot(e.x-gx, e.y-gy) < (isGod?25:15)) {
-                            e.hit(isGod ? 5 : 2); // 觉醒伤害高
-                            if(frame % 5 === 0) spawnParticles(e.x, e.y, isGod ? C.shield_god : C.shield, 1);
+                        if (Math.hypot(e.x - ox, e.y - oy) < (isGod?25:15)) {
+                            e.hit(isGod ? 5 : 2); // 高频低伤
+                            if(frame % 4 === 0) spawnParticles(e.x, e.y, isGod?Colors.orb_god:Colors.orb, 1);
                         }
                     });
-                    
-                    // 绘制 (在update里画是为了方便，实际上应该在draw)
-                    // 但为了保持粒子独立，我们这里只做逻辑，draw里专门画
-                }
-            }
-
-            // 3. 黑洞 (Singularity)
-            // 觉醒: "EVENT HORIZON" - 红色黑洞，全屏吸附，巨额伤害
-            if(this.levels.blackhole > 0) {
-                if(this.timers.blackhole > 0) this.timers.blackhole--;
-                else {
-                    const isGod = this.awakened.blackhole;
-                    // 觉醒黑洞生成在随机敌人脚下
-                    let tx = this.x, ty = this.y;
-                    const t = findNearest(this.x, this.y);
-                    if(t) { tx = t.x; ty = t.y; }
-                    else {
-                        const a = Math.random()*Math.PI*2;
-                        tx += Math.cos(a)*150; ty += Math.sin(a)*150;
-                    }
-                    
-                    objs.push(new BlackHole(tx, ty, this.levels.blackhole, isGod));
-                    this.timers.blackhole = isGod ? 240 : 360; // 觉醒CD更短
                 }
             }
         }
 
         draw() {
-            // 玩家本体
-            ctx.shadowBlur = 20; ctx.shadowColor = this.awakened.shot ? C.bullet_god : C.bullet;
-            ctx.fillStyle = 'white';
+            // 绘制本体
+            ctx.shadowBlur = 15; ctx.shadowColor = Colors.player;
+            ctx.fillStyle = Colors.player;
             ctx.beginPath(); ctx.arc(this.x, this.y, 12, 0, Math.PI*2); ctx.fill();
             
             // 绘制护盾
-            if(this.levels.guardian > 0) {
-                const isGod = this.awakened.guardian;
-                const orbCount = this.levels.guardian + (isGod ? 5 : 0);
-                const dist = isGod ? 120 : 80;
-                const col = isGod ? C.shield_god : C.shield;
+            if (this.skillLevels.guardian > 0) {
+                const lvl = this.skillLevels.guardian;
+                const isGod = lvl >= 5;
+                const count = lvl + (isGod ? 4 : 0);
+                const dist = 80 + (isGod ? 40 : 0);
+                const color = isGod ? Colors.orb_god : Colors.orb;
                 
-                ctx.shadowColor = col;
-                ctx.fillStyle = col;
-                for(let i=0; i<orbCount; i++) {
-                    const a = this.guardianAngle + (Math.PI*2/orbCount)*i;
-                    ctx.beginPath();
-                    ctx.arc(this.x + Math.cos(a)*dist, this.y + Math.sin(a)*dist, isGod?10:6, 0, Math.PI*2);
+                ctx.shadowColor = color; ctx.fillStyle = color;
+                for(let i=0; i<count; i++) {
+                    const a = this.guardianAngle + (Math.PI*2/count) * i;
+                    const ox = this.x + Math.cos(a) * dist;
+                    const oy = this.y + Math.sin(a) * dist;
+                    
+                    ctx.beginPath(); 
+                    ctx.arc(ox, oy, isGod?8:5, 0, Math.PI*2); 
                     ctx.fill();
-                    // 觉醒护盾连线
+                    
+                    // 觉醒连线特效
                     if(isGod) {
-                        ctx.strokeStyle = col; ctx.lineWidth = 2;
-                        ctx.beginPath(); ctx.moveTo(this.x, this.y); 
-                        ctx.lineTo(this.x + Math.cos(a)*dist, this.y + Math.sin(a)*dist);
-                        ctx.stroke();
+                        ctx.strokeStyle = color; ctx.lineWidth = 1;
+                        ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(ox, oy); ctx.stroke();
                     }
                 }
             }
             ctx.shadowBlur = 0;
         }
 
-        gainExp(v) {
-            this.exp += v;
-            if(this.exp >= this.nextExp) {
+        gainExp(val) {
+            this.exp += val;
+            if (this.exp >= this.nextExp) {
                 this.exp -= this.nextExp;
                 this.level++;
-                this.nextExp = Math.floor(this.nextExp * 1.4);
-                openUpgradeMenu();
+                this.nextExp = Math.floor(this.nextExp * 1.3);
+                showUpgrade();
             }
-            updateHUD();
+            updateUI();
         }
     }
 
-    // --- 物品类 ---
     class Bullet {
         constructor(x, y, vx, vy, dmg, isGod) {
             this.x=x; this.y=y; this.vx=vx; this.vy=vy; this.dmg=dmg; this.isGod=isGod;
             this.life = 60;
-            this.color = isGod ? C.bullet_god : C.bullet;
         }
         update() {
-            this.x+=this.vx; this.y+=this.vy; this.life--;
-            // 觉醒子弹有尾迹
-            if(this.isGod && frame%2===0) spawnParticles(this.x, this.y, this.color, 1);
+            this.x += this.vx; this.y += this.vy; this.life--;
+            // 觉醒拖尾
+            if (this.isGod && frame % 2 === 0) spawnParticles(this.x, this.y, Colors.bullet_god, 1);
             
             enemies.forEach(e => {
-                if(Math.hypot(e.x-this.x, e.y-this.y) < e.r+10) {
+                if (Math.hypot(e.x - this.x, e.y - this.y) < e.r + 5) {
                     e.hit(this.dmg);
-                    if(!this.isGod) this.life = 0; // 觉醒子弹穿透
+                    if (!this.isGod) this.life = 0; // 普通子弹消失，觉醒子弹穿透
                     else {
-                        // 觉醒子弹击中特效
-                        spawnParticles(this.x, this.y, C.bullet_god, 3);
-                        screenShake = 2;
+                        spawnParticles(e.x, e.y, Colors.bullet_god, 2); // 击中火花
                     }
                 }
             });
         }
         draw() {
-            ctx.fillStyle = this.color;
-            ctx.shadowBlur = 10; ctx.shadowColor = this.color;
-            ctx.beginPath(); 
-            if(this.isGod) ctx.arc(this.x, this.y, 6, 0, Math.PI*2);
-            else ctx.arc(this.x, this.y, 4, 0, Math.PI*2); 
-            ctx.fill();
+            const c = this.isGod ? Colors.bullet_god : Colors.bullet;
+            ctx.fillStyle = c; ctx.shadowColor = c; ctx.shadowBlur = 10;
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.isGod?6:4, 0, Math.PI*2); ctx.fill();
             ctx.shadowBlur = 0;
-        }
-    }
-
-    class BlackHole {
-        constructor(x, y, lvl, isGod) {
-            this.x=x; this.y=y; this.isGod=isGod;
-            this.life = 300; 
-            this.range = 150 + lvl*20 + (isGod?150:0);
-            this.angle = 0;
-            this.color = isGod ? C.blackhole_god : C.blackhole;
-        }
-        update() {
-            this.life--; this.angle += 0.1;
-            if(this.isGod) { 
-                this.range = 300 + Math.sin(frame*0.1)*50; // 呼吸效果
-                screenShake = 1;
-            }
-            
-            enemies.forEach(e => {
-                const d = Math.hypot(e.x-this.x, e.y-this.y);
-                if(d < this.range) {
-                    const pull = this.isGod ? 5 : 2; // 吸力
-                    const a = Math.atan2(this.y-e.y, this.x-e.x);
-                    e.x += Math.cos(a)*pull; e.y += Math.sin(a)*pull;
-                    e.hit(this.isGod ? 1.5 : 0.5); // 持续伤害
-                }
-            });
-        }
-        draw() {
-            ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle);
-            ctx.strokeStyle = this.color; ctx.lineWidth = this.isGod?5:2;
-            ctx.beginPath(); 
-            // 绘制旋涡
-            for(let i=0; i<4; i++) {
-                ctx.rotate(Math.PI/2);
-                ctx.moveTo(10,0); ctx.lineTo(this.range*(this.isGod?0.8:0.5), 0);
-            }
-            ctx.stroke();
-            // 中心
-            ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(0,0,20,0,Math.PI*2); ctx.fill();
-            ctx.strokeStyle='white'; ctx.lineWidth=1; ctx.stroke();
-            // 视界
-            ctx.beginPath(); ctx.arc(0,0,this.range,0,Math.PI*2); 
-            ctx.strokeStyle = `rgba(${this.isGod?'255,0,0':'160,32,240'}, 0.2)`; 
-            ctx.stroke();
-            ctx.restore();
         }
     }
 
     class Enemy {
         constructor() {
-            const a = Math.random()*Math.PI*2;
-            const d = Math.max(canvas.width, canvas.height)*0.7;
-            this.x = player.x+Math.cos(a)*d; this.y = player.y+Math.sin(a)*d;
-            this.hp = 20 + player.level*5; this.maxHp = this.hp;
-            this.speed = 1 + Math.random();
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.max(canvas.width, canvas.height) * 0.7;
+            this.x = player.x + Math.cos(angle) * dist;
+            this.y = player.y + Math.sin(angle) * dist;
+            this.hp = 20 + player.level * 8;
+            this.speed = 1.5 + Math.random() * 0.5;
             this.r = 15;
-            this.color = C.enemy;
         }
         update() {
-            const a = Math.atan2(player.y-this.y, player.x-this.x);
-            this.x += Math.cos(a)*this.speed; this.y += Math.sin(a)*this.speed;
+            const angle = Math.atan2(player.y - this.y, player.x - this.x);
+            this.x += Math.cos(angle) * this.speed;
+            this.y += Math.sin(angle) * this.speed;
             
-            if(Math.hypot(player.x-this.x, player.y-this.y) < this.r+10) {
-                player.hp -= 0.5; updateHUD();
-                if(player.hp<=0) gameOver();
+            if (Math.hypot(player.x - this.x, player.y - this.y) < this.r + 10) {
+                player.hp -= 0.5;
+                updateUI();
+                if (player.hp <= 0) gameOver();
             }
         }
-        hit(d) {
-            this.hp -= d;
-            texts.push({x:this.x, y:this.y-20, t:Math.floor(d), life:1, c:'white'});
-            if(this.hp <= 0) {
+        hit(dmg) {
+            this.hp -= dmg;
+            showText(this.x, this.y, Math.floor(dmg));
+            if (this.hp <= 0) {
                 this.dead = true;
                 player.kills++;
-                exps.push({x:this.x, y:this.y, v:10});
-                spawnParticles(this.x, this.y, this.color, 5);
+                exps.push({x: this.x, y: this.y, val: 10});
+                spawnParticles(this.x, this.y, Colors.enemy, 6);
+                updateUI();
             }
         }
         draw() {
-            ctx.fillStyle = this.color;
-            ctx.beginPath(); ctx.moveTo(this.x, this.y-this.r);
-            ctx.lineTo(this.x+this.r, this.y+this.r); ctx.lineTo(this.x-this.r, this.y+this.r);
+            ctx.fillStyle = Colors.enemy;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y - this.r);
+            ctx.lineTo(this.x + this.r, this.y + this.r);
+            ctx.lineTo(this.x - this.r, this.y + this.r);
             ctx.fill();
         }
     }
 
-    // --- 技能定义库 ---
-    const SKILL_DB = [
-        { id:'shot', name:'Plasma Gun', godName:'GOD SLAYER', desc:'Fire basic energy bolts.', godDesc:'Fires massive piercing beams.', color:C.bullet, icon:'🔫' },
-        { id:'guardian', name:'Ion Shield', godName:'ION STORM', desc:'Orbiting defensive orbs.', godDesc:'Creates an impenetrable electric storm.', color:C.shield, icon:'🛡️' },
-        { id:'blackhole', name:'Gravity Well', godName:'EVENT HORIZON', desc:'Summon a void that sucks enemies.', godDesc:'Summons a massive tear in reality.', color:C.blackhole, icon:'🌌' }
-    ];
+    // --- 核心逻辑 ---
 
-    function openUpgradeMenu() {
-        state = 'upgrade';
-        const ui = document.getElementById('upgrade-screen');
-        const box = document.getElementById('cards-container');
-        ui.classList.remove('hidden');
-        box.innerHTML = '';
+    function init() {
+        player = new Player();
+        enemies = []; bullets = []; exps = []; particles = []; texts = [];
+        keys = {}; frame = 0;
         
-        // 生成3个选项
-        // 过滤掉已经觉醒(Lv 5)的技能，除非有无限成长的设计。这里假设Lv5是满级。
-        let pool = SKILL_DB.filter(s => !player.awakened[s.id]);
+        window.addEventListener('keydown', e => keys[e.key] = true);
+        window.addEventListener('keyup', e => keys[e.key] = false);
+    }
+
+    function startGame() {
+        init();
+        gameState = 'running';
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('hud').classList.remove('hidden');
+        updateUI();
+        animate();
+    }
+
+    function showUpgrade() {
+        gameState = 'upgrade';
+        const menu = document.getElementById('upgrade-menu');
+        const container = document.getElementById('cards-box');
+        menu.classList.remove('hidden');
+        container.innerHTML = '';
+
+        // 随机抽取3个技能
+        // 过滤规则：只有等级 < 5 的技能才能出现 (觉醒后不能再升)
+        const pool = SKILLS.filter(s => {
+            const lvl = player.skillLevels[s.id] || 0;
+            if (s.type === 'active') return lvl < 5; // 主动技能上限5
+            return true; // 被动技能暂无上限
+        });
         
-        // 随机取3个 (如果池子空了就给补血)
         let choices = [];
         for(let i=0; i<3; i++) {
             if(pool.length === 0) break;
-            const idx = Math.floor(Math.random()*pool.length);
+            const idx = Math.floor(Math.random() * pool.length);
             choices.push(pool[idx]);
+            // 简单的防重复逻辑：如果是随机抽，实际应该从tempPool里移除，这里简化
         }
-        
-        if(choices.length === 0) {
-            // 全满级，给回血
-            choices.push({id:'heal', name:'Medkit', desc:'Heal 50% HP', color:'#0f0', icon:'❤️'});
-        }
+        // 如果池子太小，补血包
+        if(choices.length < 3) choices.push({id:'heal', name:'Medkit', icon:'❤️', color:'#0f0', desc:'Heal 30% HP'});
 
         choices.forEach(s => {
             const card = document.createElement('div');
             card.className = 'card';
             
-            // 检查当前等级
-            let currentLvl = player.levels[s.id] || 0;
-            let isAwakening = (currentLvl === 4); // 如果现在是4级，下次就是5级(觉醒)
+            let lvl = player.skillLevels[s.id] || 0;
+            let isAwakening = (s.type === 'active' && lvl === 4);
             
-            if(s.id === 'heal') isAwakening = false;
+            card.style.setProperty('--color', isAwakening ? '#ffd700' : s.color);
+            if (isAwakening) card.classList.add('awakened');
 
-            card.style.setProperty('--c', isAwakening ? C.bullet_god : s.color);
-            if(isAwakening) card.classList.add('is-awakening');
-
-            let title = isAwakening ? `AWAKEN: ${s.godName}` : (s.id==='heal'?s.name:s.name);
+            let title = isAwakening ? s.godName : s.name;
             let desc = isAwakening ? s.godDesc : s.desc;
-            let badge = s.id==='heal' ? '' : `Lvl ${currentLvl} ➜ ${currentLvl+1}`;
-            if(isAwakening) badge = "⚠️ ULTIMATE EVOLUTION ⚠️";
+            let badge = (s.id === 'heal') ? '' : `Lv.${lvl} ➜ Lv.${lvl+1}`;
+            if (isAwakening) badge = '⚠️ AWAKENING ⚠️';
 
             card.innerHTML = `
-                <div class="lvl-badge">${badge}</div>
+                <div style="font-size:12px; margin-bottom:10px; color:#888;">${badge}</div>
                 <div class="card-icon">${s.icon}</div>
-                <h3 class="${isAwakening?'awakened-text':''}">${title}</h3>
-                <p style="color:#aaa; font-size:12px;">${desc}</p>
+                <h3>${title}</h3>
+                <p>${desc}</p>
             `;
             
             card.onclick = () => {
-                applyUpgrade(s.id);
-                ui.classList.add('hidden');
-                state = 'running';
-                loop();
+                applySkill(s.id);
+                menu.classList.add('hidden');
+                gameState = 'running';
+                animate();
             };
-            box.appendChild(card);
+            container.appendChild(card);
         });
     }
 
-    function applyUpgrade(id) {
-        if(id === 'heal') {
-            player.hp = Math.min(player.maxHp, player.hp+50);
-            updateHUD();
+    function applySkill(id) {
+        if (id === 'heal') {
+            player.hp = Math.min(player.maxHp, player.hp + 30);
+            updateUI();
             return;
         }
         
-        player.levels[id]++;
+        player.skillLevels[id]++;
         
-        // 检查觉醒
-        if(player.levels[id] === 5) {
-            player.awakened[id] = true;
-            triggerAwakeningEffect();
+        // 检查觉醒触发
+        if (player.skillLevels[id] === 5) {
+            triggerAwakening();
         }
     }
 
-    function triggerAwakeningEffect() {
-        const banner = document.getElementById('awakening-banner');
-        banner.classList.add('show');
-        screenShake = 20; // 剧烈震动
-        // 全屏闪光
-        const flash = document.createElement('div');
-        flash.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;background:white;z-index:999;opacity:0.8;transition:0.5s;";
+    function triggerAwakening() {
+        const msg = document.getElementById('awakening-msg');
+        msg.classList.add('show');
+        setTimeout(() => msg.classList.remove('show'), 2000);
+        
+        // 全屏震动+闪光
+        let flash = document.createElement('div');
+        flash.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:white;opacity:0.8;transition:0.5s;z-index:999;';
         document.body.appendChild(flash);
-        setTimeout(() => flash.style.opacity=0, 50);
+        setTimeout(() => flash.style.opacity = 0, 50);
         setTimeout(() => flash.remove(), 500);
-        setTimeout(() => banner.classList.remove('show'), 2000);
     }
 
-    // --- 引擎核心 ---
-    let player;
-    let bullets=[], enemies=[], objs=[], exps=[], texts=[], particles=[];
-    let keys={};
-    let screenShake = 0;
-
-    window.onkeydown = e => keys[e.key]=true;
-    window.onkeyup = e => keys[e.key]=false;
-
-    function startGame() {
-        document.getElementById('start-screen').classList.add('hidden');
-        document.getElementById('hud-layer').classList.remove('hidden');
-        player = new Player();
-        bullets=[]; enemies=[]; objs=[]; exps=[]; texts=[]; particles=[];
-        state = 'running';
-        updateHUD();
-        loop();
-    }
-
-    function loop() {
-        if(state !== 'running') return;
-        requestAnimationFrame(loop);
+    function animate() {
+        if (gameState !== 'running') return;
+        requestAnimationFrame(animate);
         frame++;
 
-        // 背景清理
-        ctx.fillStyle = '#050505'; ctx.fillRect(0,0,canvas.width,canvas.height);
+        // 清空背景
+        ctx.fillStyle = '#0a0a0c'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // 震动处理
-        ctx.save();
-        if(screenShake > 0) {
-            ctx.translate((Math.random()-0.5)*screenShake, (Math.random()-0.5)*screenShake);
-            screenShake *= 0.9;
-            if(screenShake<0.5) screenShake=0;
-        }
-
         // 绘制网格
-        ctx.strokeStyle = '#111'; ctx.beginPath();
-        const gs=50;
-        const ox=bgOffset.x%gs; const oy=bgOffset.y%gs;
-        for(let x=ox; x<canvas.width; x+=gs) { ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); }
-        for(let y=oy; y<canvas.height; y+=gs) { ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); }
+        ctx.strokeStyle = '#222'; ctx.lineWidth = 1; ctx.beginPath();
+        const gs = 50;
+        const ox = bgOffset.x % gs; const oy = bgOffset.y % gs;
+        for (let x=ox; x<canvas.width; x+=gs) { ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); }
+        for (let y=oy; y<canvas.height; y+=gs) { ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); }
         ctx.stroke();
 
-        // 刷怪
-        if(frame%(Math.max(10, 50-player.level))===0) enemies.push(new Enemy());
+        // 生成敌人
+        if (frame % Math.max(10, 50 - player.level) === 0) enemies.push(new Enemy());
 
-        // 更新
+        // 更新实体
         player.update(); player.draw();
-        
-        [bullets, enemies, objs, exps, particles].forEach(arr => {
+
+        [bullets, enemies, exps, particles].forEach(arr => {
             for(let i=arr.length-1; i>=0; i--) {
-                arr[i].update(); arr[i].draw();
-                if(arr[i].life!==undefined && arr[i].life<=0) arr.splice(i,1);
-                else if(arr[i].dead) arr.splice(i,1);
+                const ent = arr[i];
+                if(ent.update) ent.update();
+                else if(ent.draw) ent.draw(); // simple particles
+                
+                // 绘制
+                if(ent.draw && ent.update) ent.draw();
+
+                if (ent.dead || (ent.life && ent.life <= 0)) arr.splice(i, 1);
             }
         });
-
-        // 经验球逻辑
+        
+        // 经验球吸附逻辑
         exps.forEach(e => {
-            ctx.fillStyle = C.exp; ctx.beginPath(); ctx.arc(e.x,e.y,3,0,Math.PI*2); ctx.fill();
-            if(Math.hypot(player.x-e.x, player.y-e.y) < 100) {
-                e.x+=(player.x-e.x)*0.15; e.y+=(player.y-e.y)*0.15;
+            ctx.fillStyle = Colors.exp; ctx.beginPath(); ctx.arc(e.x, e.y, 4, 0, Math.PI*2); ctx.fill();
+            const d = Math.hypot(player.x - e.x, player.y - e.y);
+            if (d < 150) {
+                e.x += (player.x - e.x) * 0.1; e.y += (player.y - e.y) * 0.1;
             }
-            if(Math.hypot(player.x-e.x, player.y-e.y) < 20) {
-                e.dead=true; player.gainExp(e.v);
+            if (d < 20) {
+                e.dead = true; player.gainExp(e.val);
             }
         });
 
         // 飘字
-        texts = texts.filter(t => t.life>0);
+        texts = texts.filter(t => t.life > 0);
         texts.forEach(t => {
-            t.y-=0.5; t.life-=0.02;
-            ctx.globalAlpha=t.life; ctx.fillStyle=t.c;
-            ctx.font="16px Orbitron"; ctx.fillText(t.t, t.x, t.y);
-            ctx.globalAlpha=1;
+            t.y -= 1; t.life -= 0.02;
+            ctx.globalAlpha = t.life; ctx.fillStyle = 'white'; ctx.font = "bold 16px sans-serif";
+            ctx.fillText(t.val, t.x, t.y);
+            ctx.globalAlpha = 1;
         });
 
-        // HUD 时间
-        if(frame%60===0) {
-            const s=Math.floor(frame/60);
-            document.getElementById('timer').innerText = 
-                `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+        // 时间更新
+        if (frame % 60 === 0) {
+            let s = Math.floor(frame/60);
+            let m = Math.floor(s/60);
+            document.getElementById('timer-text').innerText = `${m}:${(s%60).toString().padStart(2,'0')}`;
         }
-        
-        ctx.restore();
     }
 
-    function updateHUD() {
-        document.getElementById('exp-bar').style.width = (player.exp/player.nextExp*100)+'%';
-    }
-
-    function findNearest(x,y) {
-        let n=null, min=Infinity;
+    // --- 辅助函数 ---
+    function findNearestEnemy(x, y) {
+        let n = null; let min = Infinity;
         enemies.forEach(e => {
-            const d=Math.hypot(e.x-x, e.y-y);
-            if(d<min) { min=d; n=e; }
+            let d = Math.hypot(e.x - x, e.y - y);
+            if (d < min) { min = d; n = e; }
         });
         return n;
     }
 
-    function spawnParticles(x,y,c,n) {
+    function spawnParticles(x, y, c, n) {
         for(let i=0; i<n; i++) particles.push({
-            x:x, y:y, vx:(Math.random()-0.5)*5, vy:(Math.random()-0.5)*5,
-            life:1, color:c, 
-            update:function(){this.x+=this.vx;this.y+=this.vy;this.life-=0.05;},
-            draw:function(){ctx.globalAlpha=this.life;ctx.fillStyle=this.color;ctx.fillRect(this.x,this.y,3,3);ctx.globalAlpha=1;}
+            x, y, vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5, color: c, life: 1,
+            update: function() { this.x+=this.vx; this.y+=this.vy; this.life-=0.05; },
+            draw: function() { ctx.globalAlpha=this.life; ctx.fillStyle=this.color; ctx.fillRect(this.x,this.y,3,3); ctx.globalAlpha=1; }
         });
     }
 
-    function gameOver() {
-        state = 'gameover';
-        document.getElementById('game-over').classList.remove('hidden');
-        document.getElementById('final-score').innerText = `Kills: ${player.kills} | Level: ${player.level}`;
+    function showText(x, y, val) { texts.push({x, y, val, life: 1}); }
+
+    function updateUI() {
+        document.getElementById('exp-bar').style.width = (player.exp / player.nextExp * 100) + '%';
+        document.getElementById('lvl-text').innerText = player.level;
+        document.getElementById('hp-text').innerText = Math.floor(player.hp);
+        document.getElementById('kill-text').innerText = player.kills;
     }
 
-    function reroll() { openUpgradeMenu(); }
+    function gameOver() {
+        gameState = 'gameover';
+        document.getElementById('game-over').classList.remove('hidden');
+        document.getElementById('end-stats').innerText = `LEVEL: ${player.level} | KILLS: ${player.kills}`;
+    }
+
 </script>
 </body>
 </html>
